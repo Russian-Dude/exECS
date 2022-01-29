@@ -64,6 +64,12 @@ class IterableList<T> {
         }
     }
 
+    fun clear() {
+        first.element = null
+        first.next = null
+        last = first
+    }
+
     fun isNotEmpty() : Boolean = first.element != null || first.next != null
 
     fun isEmpty() : Boolean = !isNotEmpty()
