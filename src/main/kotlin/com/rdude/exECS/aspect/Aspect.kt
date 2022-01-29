@@ -27,15 +27,6 @@ class Aspect(
     }
 
     constructor(
-        allOf: IterableList<KClass<out Component>> = IterableList(),
-        anyOf: IterableList<KClass<out Component>> = IterableList(),
-        exclude: KClass<out Component>? = null
-    ) : this(
-        allOf = allOf,
-        anyOf = anyOf,
-        exclude = exclude?.let { IterableList(it) } ?: IterableList())
-
-    constructor(
         only: KClass<out Component>,
         exclude: KClass<out Component>
     ) : this(
