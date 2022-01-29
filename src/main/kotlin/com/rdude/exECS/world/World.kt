@@ -75,6 +75,12 @@ class World {
         }
     }
 
+    fun clearEntities() {
+        for (system in systems) {
+            system.entities.clear()
+        }
+    }
+
     private fun checkSystemCorrectness(system: System) {
         if (
             system is EventSystem<*>
