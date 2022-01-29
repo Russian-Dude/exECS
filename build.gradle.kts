@@ -2,11 +2,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.5.31"
-    `maven-publish`
+    id("maven-publish")
 }
 
 group = "com.rdude"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -31,8 +31,6 @@ publishing {
             groupId = "com.russian-dude"
             artifactId = "execs"
             version = "1.0.0"
-
-            from(components["java"])
         }
     }
 }
