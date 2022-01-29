@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.rdude"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -30,7 +30,7 @@ publishing {
         create<MavenPublication>("maven") {
             groupId = "com.russian-dude"
             artifactId = "execs"
-            version = "1.0.0"
+            version = "1.0.1"
         }
     }
 }
