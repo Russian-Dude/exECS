@@ -60,7 +60,7 @@ class World {
         if (system is EventSystem<*>) {
             eventBus.registerSystem(system)
         }
-        if (system.aspect.anyOf.isEmpty() && system.aspect.anyOf.isEmpty()) {
+        if (system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()) {
             system.addEntity(Entity.DUMMY_ENTITY)
         }
     }
@@ -70,7 +70,7 @@ class World {
         if (systems is EventSystem<*>) {
             eventBus.removeSystem(systems)
         }
-        if (system.aspect.anyOf.isEmpty() && system.aspect.anyOf.isEmpty()) {
+        if (system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()) {
             system.removeEntity(Entity.DUMMY_ENTITY)
         }
     }

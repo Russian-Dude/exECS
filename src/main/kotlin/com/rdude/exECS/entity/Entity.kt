@@ -27,7 +27,7 @@ class Entity private constructor(private val components: MutableMap<KClass<out C
     fun hasComponent(componentClass: KClass<out Component>) = components.containsKey(componentClass)
 
     fun hasComponents(vararg components: KClass<out Component>): Boolean {
-        for (i in 0..components.size) {
+        for (i in 0..components.size - 1) {
             if (!hasComponent(components[i])) {
                 return false
             }
@@ -75,7 +75,7 @@ class Entity private constructor(private val components: MutableMap<KClass<out C
         fun new(world: World, vararg components: Component): Entity {
             val entity = Entity()
             entity.world = world
-            for (i in 0..components.size) {
+            for (i in 0..components.size - 1) {
                 entity.addComponentSilently(components[i])
             }
             return entity
