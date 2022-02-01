@@ -2,12 +2,12 @@ package com.rdude.exECS.system
 
 import com.rdude.exECS.aspect.Aspect
 import com.rdude.exECS.entity.Entity
-import com.rdude.exECS.utils.collections.IterableList
+import com.rdude.exECS.utils.collections.IterableArray
 
 abstract class System : Iterable<Entity> {
 
     abstract val aspect: Aspect
-    val entities = IterableList<Entity>()
+    val entities = IterableArray<Entity>()
 
     override operator fun iterator(): Iterator<Entity> = entities.iterator()
 

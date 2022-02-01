@@ -1,20 +1,16 @@
 package com.rdude.exECS.aspect
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.utils.collections.IterableList
+import com.rdude.exECS.utils.collections.IterableArray
 import kotlin.reflect.KClass
 
-operator fun KClass<out Component>.plus(component: KClass<out Component>) = this and component
-
-operator fun IterableList<KClass<out Component>>.plus(component: KClass<out Component>) = this and component
-
-infix fun KClass<out Component>.and(other: KClass<out Component>): IterableList<KClass<out Component>> {
-    val list = IterableList<KClass<out Component>>()
-    list.addAll(this, other)
-    return list
+infix fun KClass<out Component>.and(other: KClass<out Component>): IterableArray<KClass<out Component>> {
+    val array = IterableArray<KClass<out Component>>()
+    array.addAll(this, other)
+    return array
 }
 
-infix fun IterableList<KClass<out Component>>.and(other: KClass<out Component>): IterableList<KClass<out Component>> {
+infix fun IterableArray<KClass<out Component>>.and(other: KClass<out Component>): IterableArray<KClass<out Component>> {
     add(other)
     return this
 }

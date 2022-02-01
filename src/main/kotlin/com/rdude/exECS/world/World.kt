@@ -5,11 +5,11 @@ import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.*
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.system.*
-import com.rdude.exECS.utils.collections.IterableList
+import com.rdude.exECS.utils.collections.IterableArray
 
 class World {
 
-    private val systems = IterableList<System>()
+    private val systems = IterableArray<System>()
     private val eventBus = EventBus()
     private val actingEvent = ActingEvent(0.0)
     private val entityAddedEvents = Pool { EntityAddedEvent(Entity.DUMMY_ENTITY, this) }
@@ -106,7 +106,6 @@ class World {
         // exclude
         for (component in system.aspect.exclude) {
             if (entity.hasComponent(component)) {
-                system.aspect.exclude.iterationStopped()
                 return false
             }
         }
@@ -116,7 +115,7 @@ class World {
             for (component in system.aspect.anyOf) {
                 if (entity.hasComponent(component)) {
                     anyOf = true
-                    system.aspect.anyOf.iterationStopped()
+                    break
                 }
             }
             if (!anyOf) {
@@ -126,7 +125,6 @@ class World {
         // all of
         for (component in system.aspect.allOf) {
             if (!entity.hasComponent(component)) {
-                system.aspect.allOf.iterationStopped()
                 return false
             }
         }
