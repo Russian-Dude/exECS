@@ -5,9 +5,10 @@ import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.world.World
+import java.util.*
 import kotlin.reflect.KClass
 
-class Entity private constructor(private val components: MutableMap<KClass<out Component>, Component> = HashMap()) {
+class Entity private constructor(private val components: MutableMap<KClass<out Component>, Component> = IdentityHashMap()) {
 
     private lateinit var world: World
 
