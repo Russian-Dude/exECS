@@ -2,13 +2,13 @@ package com.rdude.exECS.event
 
 import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.utils.EventSystemGenericQualifier
+import com.rdude.exECS.utils.collections.ArrayQueue
 import com.rdude.exECS.utils.collections.IterableArray
-import java.util.*
 import kotlin.reflect.KClass
 
 class EventBus {
 
-    private val eventQueue: Queue<Event> = LinkedList()
+    private val eventQueue: ArrayQueue<Event> = ArrayQueue()
     private val eventsToSystems: MutableMap<KClass<out Event>, IterableArray<EventSystem<*>>> = HashMap()
 
     fun registerSystem(system: EventSystem<*>) {

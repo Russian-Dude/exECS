@@ -1,10 +1,10 @@
 package com.rdude.exECS.pool
 
-import java.util.*
+import com.rdude.exECS.utils.collections.ArrayQueue
 
 class Pool<T : Poolable>(private val supplier: () -> T) {
 
-    private val queue: Queue<T> by lazy { LinkedList() }
+    private val queue: ArrayQueue<T> by lazy { ArrayQueue() }
 
     fun obtain() : T {
         var t = queue.poll()
