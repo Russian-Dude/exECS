@@ -12,18 +12,20 @@ class EventBus {
     private val eventsToSystems: MutableMap<KClass<out Event>, IterableList<EventSystem<*>>> = HashMap()
 
     fun registerSystem(system: EventSystem<*>) {
-        val eventClass = EventSystemGenericQualifier.getEventArgument(system)
-        var iterableList = eventsToSystems[eventClass]
-        if (iterableList == null) {
-            iterableList = IterableList()
-            eventsToSystems[eventClass] = iterableList
+        for (eventClass in EventSystemGenericQualifier.getEventClassesForSystem(system)) {
+            var iterableList = eventsToSystems[eventClass]
+            if (iterableList == null) {
+                iterableList = IterableList()
+                eventsToSystems[eventClass] = iterableList
+            }
+            iterableList.add(system)
         }
-        iterableList.add(system)
     }
 
     fun removeSystem(system: EventSystem<*>) {
-        val eventClass = EventSystemGenericQualifier.getEventArgument(system)
-        eventsToSystems[eventClass]?.remove(system)
+        for (eventClass in EventSystemGenericQualifier.getEventClassesForSystem(system)) {
+            eventsToSystems[eventClass]?.remove(system)
+        }
     }
 
     fun queueEvent(event: Event) = eventQueue.add(event)
