@@ -4,7 +4,7 @@ package com.rdude.exECS.utils.collections
  * THIS LIST WAS CREATED WITH INTENTION TO BE USED ONLY BY THIS ECS LIBRARY.
  *
  * List with reusable iterator. Only one iteration per time is available.
- * When using for loops with this list, break MUST NOT BE CALLED, instead forceBreak method should be used
+ * When using for loops with this list, break or return from loop should be called ONLY AFTER iterationStopped()
  */
 
 class IterableList<T> {
@@ -74,8 +74,8 @@ class IterableList<T> {
 
     fun isEmpty() : Boolean = !isNotEmpty()
 
-    fun forceBreak() {
-        iterator.current = last
+    fun iterationStopped() {
+        currentlyIterating = false
     }
 
     operator fun plusAssign(element: T) = add(element)
