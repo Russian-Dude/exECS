@@ -40,7 +40,11 @@ class World {
         queueEvent(event)
     }
 
-    fun createEntity(vararg components: Component) = addEntity(Entity.new(this, *components))
+    fun createEntity(vararg components: Component) : Entity  {
+        val entity = Entity.new(this, *components)
+        addEntity(entity)
+        return entity
+    }
 
     fun removeEntity(entity: Entity) {
         for (system in systems) {
@@ -102,6 +106,7 @@ class World {
         // exclude
         for (component in system.aspect.exclude) {
             if (entity.hasComponent(component)) {
+                system.aspect.exclude.iterationStopped()
                 return false
             }
         }
@@ -111,7 +116,7 @@ class World {
             for (component in system.aspect.anyOf) {
                 if (entity.hasComponent(component)) {
                     anyOf = true
-                    system.aspect.anyOf.forceBreak()
+                    system.aspect.anyOf.iterationStopped()
                 }
             }
             if (!anyOf) {
@@ -121,6 +126,7 @@ class World {
         // all of
         for (component in system.aspect.allOf) {
             if (!entity.hasComponent(component)) {
+                system.aspect.allOf.iterationStopped()
                 return false
             }
         }
