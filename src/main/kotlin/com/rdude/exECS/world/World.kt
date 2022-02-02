@@ -2,6 +2,9 @@ package com.rdude.exECS.world
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.Entity
+import com.rdude.exECS.entity.EntityID
+import com.rdude.exECS.entity.EntityMapper
+import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.*
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.system.*
@@ -10,10 +13,15 @@ import com.rdude.exECS.utils.collections.IterableArray
 class World {
 
     private val systems = IterableArray<System>()
+    internal val entityMapper = EntityMapper()
+    internal val entityWrapper = EntityWrapper(this)
     private val eventBus = EventBus()
     private val actingEvent = ActingEvent(0.0)
-    private val entityAddedEvents = Pool { EntityAddedEvent(Entity.DUMMY_ENTITY, this) }
-    private val entityRemovedEvents = Pool { EntityRemovedEvent(Entity.DUMMY_ENTITY, this) }
+    private val entityAddedEvents = Pool { EntityAddedEvent(this) }
+    private val entityRemovedEvents = Pool { EntityRemovedEvent(this) }
+    internal val componentAddedEventPool = Pool { ComponentAddedEvent(this) }
+    internal val componentRemovedEventPool = Pool { ComponentRemovedEvent(this) }
+
 
     init {
         addSystem(ComponentAddedSystem())
@@ -28,44 +36,57 @@ class World {
 
     fun queueEvent(event: Event) = eventBus.queueEvent(event)
 
-    fun addEntity(entity: Entity) {
+    private fun addEntity(entity: Entity) : EntityID {
+        val id = entityMapper.add(entity)
         for (system in systems) {
             if (isEntityMatchSystem(entity, system)) {
-                system.addEntity(entity)
+                system.addEntity(id)
             }
         }
         val event = entityAddedEvents.obtain()
-        event.entity = entity
-        event.world = this
+        event.pureEntity = entity
+        event.entityId = id
         queueEvent(event)
+        return id
     }
 
-    fun createEntity(vararg components: Component) : Entity  {
-        val entity = Entity.new(this, *components)
-        addEntity(entity)
-        return entity
-    }
+    fun createEntity(vararg components: Component) = addEntity(Entity.new(*components))
 
-    fun removeEntity(entity: Entity) {
-        for (system in systems) {
-            if (isEntityMatchSystem(entity, system)) {
-                system.removeEntity(entity)
+    fun createEntity(components: Array<Component>) {
+        val entityID: EntityID
+        if (components.isNotEmpty()) {
+            entityID = createEntity(components[0])
+            if (components.size > 1) {
+                for (i in 1 until components.size) {
+                    entityMapper[entityID] += components[i]
+                }
             }
         }
+    }
+
+    internal fun removeEntity(id: EntityID) {
+        val entity = entityMapper[id]
         val event = entityRemovedEvents.obtain()
-        event.entity = entity
-        event.world = this
+        event.pureEntity = entity
+        event.entityId = id
         queueEvent(event)
+        for (system in systems) {
+            if (isEntityMatchSystem(entity, system)) {
+                system.removeEntity(id)
+            }
+        }
+        entityMapper.remove(id)
     }
 
     fun addSystem(system: System) {
         checkSystemCorrectness(system)
         systems.add(system)
+        system.world = this
         if (system is EventSystem<*>) {
             eventBus.registerSystem(system)
         }
         if (system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()) {
-            system.addEntity(Entity.DUMMY_ENTITY)
+            system.addEntity(EntityID.DUMMY_ENTITY_ID)
         }
     }
 
@@ -75,13 +96,13 @@ class World {
             eventBus.removeSystem(systems)
         }
         if (system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()) {
-            system.removeEntity(Entity.DUMMY_ENTITY)
+            system.removeEntity(EntityID.DUMMY_ENTITY_ID)
         }
     }
 
     fun clearEntities() {
         for (system in systems) {
-            system.entities.clear()
+            system.entityIDs.clear()
         }
     }
 
@@ -138,11 +159,11 @@ class World {
         override fun eventFired(event: ComponentAddedEvent) {
             val entity = event.entity
             for (system in systems) {
-                if (isEntityMatchSystem(entity, system) && !system.entities.contains(entity)) {
-                    system.addEntity(entity)
+                if (isEntityMatchSystem(entity.entity, system) && !system.entityIDs.contains(entity.entityID)) {
+                    system.addEntity(entity.entityID)
                 }
                 else {
-                    system.removeEntity(entity)
+                    system.removeEntity(entity.entityID)
                 }
             }
         }
@@ -155,11 +176,11 @@ class World {
         override fun eventFired(event: ComponentRemovedEvent) {
             val entity = event.entity
             for (system in systems) {
-                if (isEntityMatchSystem(entity, system) && !system.entities.contains(entity)) {
-                    system.addEntity(entity)
+                if (isEntityMatchSystem(entity.entity, system) && !system.entityIDs.contains(entity.entityID)) {
+                    system.addEntity(entity.entityID)
                 }
                 else {
-                    system.removeEntity(entity)
+                    system.removeEntity(entity.entityID)
                 }
             }
         }

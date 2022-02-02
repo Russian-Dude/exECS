@@ -1,8 +1,11 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
+import com.rdude.exECS.event.Event
+import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.system.SimpleEventSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.*
@@ -12,6 +15,10 @@ import org.junit.jupiter.api.*
 internal class DefaultComponentEventsTest {
 
     private inner class TestComponent : Component
+    private inner class StartComponent : Component
+
+    private inner class NeedToRemoveComponentEvent : Event
+    private inner class NeedToAddComponent : Event
 
     private inner class ComponentAddedSystem : SimpleEventSystem<ComponentAddedEvent>() {
         var component: Component? = null
@@ -27,25 +34,41 @@ internal class DefaultComponentEventsTest {
         }
     }
 
+    private inner class RemoveComponentSystem : EventSystem<NeedToRemoveComponentEvent>(only = TestComponent::class) {
+        override fun eventFired(entity: EntityWrapper, event: NeedToRemoveComponentEvent) {
+            entity.removeComponent<TestComponent>()
+        }
+    }
+
+    private inner class AddComponentSystem : EventSystem<NeedToAddComponent>(only = StartComponent::class) {
+        override fun eventFired(entity: EntityWrapper, event: NeedToAddComponent) {
+            entity += component
+        }
+    }
+
     private val world = World()
 
     private val componentAddedSystem = ComponentAddedSystem()
     private val componentRemovedSystem = ComponentRemovedSystem()
+    private val removeComponentSystem = RemoveComponentSystem()
+    private val addComponentSystem = AddComponentSystem()
 
     private val component = TestComponent()
-    private val entity = world.createEntity()
 
 
     @BeforeAll
     fun registerSystems() {
         world.addSystem(componentAddedSystem)
         world.addSystem(componentRemovedSystem)
+        world.addSystem(removeComponentSystem)
+        world.addSystem(addComponentSystem)
     }
 
     @Test
     @Order(1)
     fun componentAddedTest() {
-        entity.addComponent(component)
+        world.createEntity(StartComponent())
+        world.queueEvent(NeedToAddComponent())
         world.act(0.0)
         assert(componentAddedSystem.component == component)
     }
@@ -53,7 +76,7 @@ internal class DefaultComponentEventsTest {
     @Test
     @Order(2)
     fun componentRemovedTest() {
-        entity.removeComponent(TestComponent::class)
+        world.queueEvent(NeedToRemoveComponentEvent())
         world.act(0.0)
         assert(componentRemovedSystem.component == component)
     }

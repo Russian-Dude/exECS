@@ -2,7 +2,7 @@ package com.rdude.exECS
 
 import com.rdude.exECS.aspect.and
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.Entity
+import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.system.ActingSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.BeforeAll
@@ -22,7 +22,7 @@ internal class AspectTest {
 
     private inner class AllOf123 : ActingSystem(allOf = Component1::class and Component2::class and Component3::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
@@ -31,14 +31,14 @@ internal class AspectTest {
         allOf = Component1::class and Component2::class and Component3::class,
         exclude = Component4::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
 
     private inner class Any123 : ActingSystem(anyOf = Component1::class and Component2::class and Component3::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
@@ -47,7 +47,7 @@ internal class AspectTest {
         anyOf = Component1::class and Component2::class and Component3::class,
         exclude = Component4::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
@@ -56,7 +56,7 @@ internal class AspectTest {
         allOf = Component1::class and Component2::class,
         anyOf = Component3::class and Component4::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
@@ -66,21 +66,21 @@ internal class AspectTest {
         anyOf = Component3::class and Component4::class,
         exclude = Component5::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
 
     private inner class Only1 : ActingSystem(only = Component1::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
 
     private inner class Only1Exclude2 : ActingSystem(only = Component1::class, exclude = Component2::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
@@ -89,7 +89,7 @@ internal class AspectTest {
         allOf = Component1::class,
         anyOf = Component2::class and Component3::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
@@ -99,7 +99,7 @@ internal class AspectTest {
         anyOf = Component2::class and Component3::class,
         exclude = Component4::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }
@@ -109,7 +109,7 @@ internal class AspectTest {
         anyOf = Component2::class and Component3::class,
         exclude = Component4::class and Component5::class) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: EntityWrapper, delta: Double) {
             fired = true
         }
     }

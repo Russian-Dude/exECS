@@ -2,7 +2,7 @@ package com.rdude.exECS.system
 
 import com.rdude.exECS.aspect.Aspect
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.Entity
+import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.ActingEvent
 import com.rdude.exECS.utils.collections.IterableArray
 import kotlin.reflect.KClass
@@ -58,10 +58,10 @@ abstract class ActingSystem(override val aspect: Aspect = Aspect()) : EventSyste
 
     constructor(only: KClass<out Component>): this(Aspect(only = only))
 
-    final override fun eventFired(entity: Entity, event: ActingEvent) {
+    final override fun eventFired(entity: EntityWrapper, event: ActingEvent) {
         act(entity, event.delta)
     }
 
-    abstract fun act(entity: Entity, delta: Double)
+    abstract fun act(entity: EntityWrapper, delta: Double)
 
 }

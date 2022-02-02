@@ -1,17 +1,22 @@
 package com.rdude.exECS.system
 
 import com.rdude.exECS.aspect.Aspect
-import com.rdude.exECS.entity.Entity
-import com.rdude.exECS.utils.collections.IterableArray
+import com.rdude.exECS.component.Component
+import com.rdude.exECS.entity.EntityID
+import com.rdude.exECS.utils.collections.EntityIDIterableArray
+import com.rdude.exECS.world.World
 
-abstract class System : Iterable<Entity> {
+abstract class System : Iterable<EntityID> {
 
     abstract val aspect: Aspect
-    val entities = IterableArray<Entity>()
+    lateinit var world: World
+    internal val entityIDs = EntityIDIterableArray()
 
-    override operator fun iterator(): Iterator<Entity> = entities.iterator()
+    override operator fun iterator(): Iterator<EntityID> = entityIDs.iterator()
 
-    fun addEntity(entity: Entity) = entities.add(entity)
+    internal fun addEntity(entity: EntityID) = entityIDs.add(entity)
 
-    fun removeEntity(entity: Entity) = entities.remove(entity)
+    internal fun removeEntity(entity: EntityID) = entityIDs.remove(entity)
+
+    fun createEntity(vararg components: Component) = world.createEntity(*components)
 }

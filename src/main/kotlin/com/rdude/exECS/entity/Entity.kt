@@ -1,29 +1,16 @@
 package com.rdude.exECS.entity
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.event.ComponentAddedEvent
-import com.rdude.exECS.event.ComponentRemovedEvent
-import com.rdude.exECS.pool.Pool
-import com.rdude.exECS.world.World
 import java.util.*
 import kotlin.reflect.KClass
 
-class Entity private constructor(private val components: MutableMap<KClass<out Component>, Component> = IdentityHashMap()) {
-
-    private lateinit var world: World
+@JvmInline
+value class Entity private constructor(private val components: MutableMap<KClass<out Component>, Component> = IdentityHashMap()) {
 
     @Suppress("UNCHECKED_CAST")
     fun <T : Component> getComponent(componentClass: KClass<T>) : T? = components[componentClass] as T?
 
-    fun removeComponent(componentClass: KClass<out Component>)  {
-        val component = components.remove(componentClass)
-        if (component != null) {
-            val event = componentRemovedEventPool.obtain()
-            event.component = component
-            event.entity = this
-            world.queueEvent(event)
-        }
-    }
+    fun removeComponent(componentClass: KClass<out Component>) : Component? = components.remove(componentClass)
 
     fun hasComponent(componentClass: KClass<out Component>) = components.containsKey(componentClass)
 
@@ -38,10 +25,6 @@ class Entity private constructor(private val components: MutableMap<KClass<out C
 
     fun addComponent(component: Component)  {
         components[component::class] = component
-        val event = componentAddedEventPool.obtain()
-        event.component = component
-        event.entity = this
-        world.queueEvent(event)
     }
 
     private fun addComponentSilently(component: Component) = components.put(component::class, component)
@@ -68,14 +51,10 @@ class Entity private constructor(private val components: MutableMap<KClass<out C
 
     companion object {
 
-        private val componentAddedEventPool: Pool<ComponentAddedEvent> by lazy { Pool { ComponentAddedEvent(Component.DUMMY_COMPONENT, DUMMY_ENTITY) } }
-        private val componentRemovedEventPool: Pool<ComponentRemovedEvent> by lazy { Pool { ComponentRemovedEvent(Component.DUMMY_COMPONENT, DUMMY_ENTITY) } }
-
         val DUMMY_ENTITY = Entity()
 
-        fun new(world: World, vararg components: Component): Entity {
+        fun new(vararg components: Component): Entity {
             val entity = Entity()
-            entity.world = world
             for (i in 0..components.size - 1) {
                 entity.addComponentSilently(components[i])
             }
