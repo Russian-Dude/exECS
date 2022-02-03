@@ -28,8 +28,35 @@ internal class EntityIDIterableArray(fixedCapacity: Boolean = false, vararg init
         for (i in 0 until size) {
             val current = backingArray[i]
             if (current == id.id) {
-                backingArray[i] = backingArray[--size]
+                val last = backingArray[--size]
+                backingArray[i] = last
                 backingArray[size] = 0
+                return
+            }
+        }
+    }
+
+    fun remove(id: EntityID, replacedId: EntityID) {
+        var removed = false
+        var replaced = false
+        for (i in 0 until size) {
+            val current = backingArray[i]
+            if (current == id.id) {
+                val last = backingArray[--size]
+                backingArray[i] = last
+                backingArray[size] = 0
+                removed = true
+                if (last == replacedId.id) {
+                    backingArray[i] = id.id
+                    replaced = true
+                }
+            }
+            if (current == replacedId.id) {
+                backingArray[i] = id.id
+                replaced = true
+            }
+            if (removed && replaced) {
+                return
             }
         }
     }

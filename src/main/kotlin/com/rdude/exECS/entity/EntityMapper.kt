@@ -23,9 +23,13 @@ class EntityMapper {
         return EntityID(id)
     }
 
-    fun remove(id: EntityID) {
+    /**
+     * Remove entity and return id that fill a gap
+     */
+    fun remove(id: EntityID) : EntityID {
         backingArray[id.id] = backingArray[--size]
         backingArray[size] = null
+        return EntityID(size)
     }
 
     operator fun get(id: EntityID) : Entity = backingArray[id.id] as Entity

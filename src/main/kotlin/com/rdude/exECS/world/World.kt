@@ -70,12 +70,12 @@ class World {
         event.pureEntity = entity
         event.entityId = id
         queueEvent(event)
+        val replaceId = entityMapper.remove(id)
         for (system in systems) {
             if (isEntityMatchSystem(entity, system)) {
-                system.removeEntity(id)
+                system.removeEntity(id, replaceId)
             }
         }
-        entityMapper.remove(id)
     }
 
     fun addSystem(system: System) {

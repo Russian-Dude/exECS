@@ -16,6 +16,8 @@ abstract class System : Iterable<EntityID> {
 
     internal fun addEntity(entity: EntityID) = entityIDs.add(entity)
 
+    internal fun removeEntity(entity: EntityID, replacedBy: EntityID) = entityIDs.remove(entity, replacedBy)
+
     internal fun removeEntity(entity: EntityID) = entityIDs.remove(entity)
 
     fun createEntity(vararg components: Component) = world.createEntity(*components)
