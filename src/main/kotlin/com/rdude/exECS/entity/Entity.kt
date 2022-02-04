@@ -53,7 +53,7 @@ value class Entity private constructor(private val components: MutableMap<KClass
 
         val DUMMY_ENTITY = Entity()
 
-        fun new(vararg components: Component): Entity {
+        internal fun new(vararg components: Component): Entity {
             val entity = Entity()
             for (i in 0..components.size - 1) {
                 entity.addComponentSilently(components[i])

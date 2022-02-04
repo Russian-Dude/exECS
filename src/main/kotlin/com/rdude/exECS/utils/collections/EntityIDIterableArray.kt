@@ -36,31 +36,6 @@ internal class EntityIDIterableArray(fixedCapacity: Boolean = false, vararg init
         }
     }
 
-    fun remove(id: EntityID, replacedId: EntityID) {
-        var removed = false
-        var replaced = false
-        for (i in 0 until size) {
-            val current = backingArray[i]
-            if (current == id.id) {
-                val last = backingArray[--size]
-                backingArray[i] = last
-                backingArray[size] = 0
-                removed = true
-                if (last == replacedId.id) {
-                    backingArray[i] = id.id
-                    replaced = true
-                }
-            }
-            if (current == replacedId.id) {
-                backingArray[i] = id.id
-                replaced = true
-            }
-            if (removed && replaced) {
-                return
-            }
-        }
-    }
-
     fun contains(id: EntityID) : Boolean {
         for (i in 0 until backingArray.size) {
             if (backingArray[i] == id.id) {

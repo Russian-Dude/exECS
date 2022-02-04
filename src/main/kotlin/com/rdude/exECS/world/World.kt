@@ -36,7 +36,7 @@ class World {
 
     fun queueEvent(event: Event) = eventBus.queueEvent(event)
 
-    private fun addEntity(entity: Entity) : EntityID {
+    private fun addEntity(entity: Entity) {
         val id = entityMapper.add(entity)
         for (system in systems) {
             if (isEntityMatchSystem(entity, system)) {
@@ -47,21 +47,13 @@ class World {
         event.pureEntity = entity
         event.entityId = id
         queueEvent(event)
-        return id
     }
 
-    fun createEntity(vararg components: Component) = addEntity(Entity.new(*components))
-
-    fun createEntity(components: Array<Component>) {
-        val entityID: EntityID
-        if (components.isNotEmpty()) {
-            entityID = createEntity(components[0])
-            if (components.size > 1) {
-                for (i in 1 until components.size) {
-                    entityMapper[entityID] += components[i]
-                }
-            }
+    fun createEntity(vararg components: Component) {
+        if (components.isEmpty()) {
+            throw IllegalArgumentException("Entity must have at least one component")
         }
+        addEntity(Entity.new(*components))
     }
 
     internal fun removeEntity(id: EntityID) {
@@ -70,10 +62,10 @@ class World {
         event.pureEntity = entity
         event.entityId = id
         queueEvent(event)
-        val replaceId = entityMapper.remove(id)
+        entityMapper.remove(id)
         for (system in systems) {
             if (isEntityMatchSystem(entity, system)) {
-                system.removeEntity(id, replaceId)
+                system.removeEntity(id)
             }
         }
     }
