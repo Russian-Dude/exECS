@@ -40,19 +40,16 @@ internal class EntitiesSubscription(aspect: Aspect) {
         anyOf = IterableArray(true, *aspect.anyOf.toTypedArray())
         for (componentClass in aspect.anyOf) {
             val id = ComponentTypeIDsResolver.idFor(componentClass).id
-            componentTypeIDs = componentTypeIDs.getGrowCopyIfNeeded(id + 1)
             componentTypeIDs[id] = true
         }
         allOf = IterableArray(true, *aspect.allOf.toTypedArray())
         for (componentClass in aspect.allOf) {
             val id = ComponentTypeIDsResolver.idFor(componentClass).id
-            componentTypeIDs = componentTypeIDs.getGrowCopyIfNeeded(id + 1)
             componentTypeIDs[id] = true
         }
         exclude = IterableArray(true, *aspect.exclude.toTypedArray())
         for (componentClass in aspect.exclude) {
             val id = ComponentTypeIDsResolver.idFor(componentClass).id
-            componentTypeIDs = componentTypeIDs.getGrowCopyIfNeeded(id + 1)
             componentTypeIDs[id] = true
         }
     }
@@ -99,7 +96,6 @@ internal class EntitiesSubscription(aspect: Aspect) {
 
     fun addEntity(id: EntityID) {
         entityIDs.add(id.id)
-        hasEntities = hasEntities.getGrowCopyIfNeeded(id.id + 1)
         hasEntities.set(id.id)
     }
 

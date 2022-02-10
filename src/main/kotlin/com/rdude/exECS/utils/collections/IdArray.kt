@@ -2,10 +2,16 @@ package com.rdude.exECS.utils.collections
 
 import kotlin.math.max
 
+/**
+ * Every element in this array keeps its ID as long as it presents in the backing array.
+ * Empty cells will be reused.
+ * When this array size grows it also ask all linked bitsets to grow their size if needed
+ */
 internal class IdArray<T> private constructor(array: Array<T?>) {
 
     private var backingArray: Array<T?> = array
     private val emptyIDs = IntArrayStack()
+    private val linkedBitSets = IterableArray<UnsafeBitSet>()
     private var size = 0
     private var lastIndex = 0
 
@@ -80,8 +86,14 @@ internal class IdArray<T> private constructor(array: Array<T?>) {
 
     inline fun isNotEmpty() = size > 0
 
+    inline fun linkBitSet(bitSet: UnsafeBitSet) = linkedBitSets.add(bitSet)
+
     inline fun grow() {
-        backingArray = backingArray.copyOf(max(size, 1) * 2)
+        val newSize = max(backingArray.size, 1) * 2
+        backingArray = backingArray.copyOf(newSize)
+        for (bitSet in linkedBitSets) {
+            bitSet.growIfNeeded(newSize)
+        }
     }
 
     companion object {

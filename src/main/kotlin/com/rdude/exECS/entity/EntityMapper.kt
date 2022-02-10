@@ -9,7 +9,6 @@ import com.rdude.exECS.utils.collections.IdArray
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.world.World
-
 internal class EntityMapper(private var world: World) {
 
     // Stores all actual entities
@@ -35,8 +34,10 @@ internal class EntityMapper(private var world: World) {
     }
 
 
-    internal fun registerEntitiesSubscription(subscription: EntitiesSubscription) =
+    internal fun registerEntitiesSubscription(subscription: EntitiesSubscription) {
         entitiesSubscriptions.add(subscription)
+        backingArray.linkBitSet(subscription.hasEntities)
+    }
 
     internal fun notifySubscriptionsManager() {
         val subscriptionsManager = world.subscriptionsManager
@@ -93,3 +94,4 @@ internal class EntityMapper(private var world: World) {
     operator fun get(id: EntityID) : Entity = backingArray[id.id] as Entity
 
 }
+
