@@ -1,13 +1,15 @@
-package com.rdude.exECS.utils
+package com.rdude.exECS.utils.reflection
 
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.system.EventSystem
 import org.reflections.Reflections
 import kotlin.reflect.KClass
 import kotlin.reflect.KTypeProjection
-import kotlin.reflect.full.*
+import kotlin.reflect.full.allSupertypes
+import kotlin.reflect.full.createType
+import kotlin.reflect.full.isSubtypeOf
 
-object EventSystemGenericQualifier {
+internal class EventSystemGenericQualifier {
 
     private val eventType = Event::class.createType()
 

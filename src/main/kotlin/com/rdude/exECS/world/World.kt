@@ -1,7 +1,9 @@
 package com.rdude.exECS.world
 
+import com.rdude.exECS.aspect.EntitiesSubscription
+import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.Entity
+import com.rdude.exECS.component.ComponentPresenceChange
 import com.rdude.exECS.entity.EntityID
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.entity.EntityWrapper
@@ -13,22 +15,23 @@ import com.rdude.exECS.utils.collections.IterableArray
 class World {
 
     private val systems = IterableArray<System>()
-    internal val entityMapper = EntityMapper()
+    internal val entityMapper = EntityMapper(this)
     internal val entityWrapper = EntityWrapper(this)
     private val eventBus = EventBus()
     private val actingEvent = ActingEvent(0.0)
-    private val entityAddedEvents = Pool { EntityAddedEvent(this) }
-    private val entityRemovedEvents = Pool { EntityRemovedEvent(this) }
+    internal val subscriptionsManager = SubscriptionsManager(this)
     internal val componentAddedEventPool = Pool { ComponentAddedEvent(this) }
     internal val componentRemovedEventPool = Pool { ComponentRemovedEvent(this) }
 
 
-    init {
-        addSystem(ComponentAddedSystem())
-        addSystem(ComponentRemovedSystem())
-    }
-
     fun act(delta: Double) {
+        // update systems' entities
+        entityMapper.notifySubscriptionsManager()
+        // fire entity added/removed and component added/removed events
+        eventBus.fireInternalEvents()
+        // actualize data
+        entityMapper.actualize()
+        // main events
         actingEvent.delta = delta
         eventBus.queueEvent(actingEvent)
         eventBus.fireEvents()
@@ -36,66 +39,48 @@ class World {
 
     fun queueEvent(event: Event) = eventBus.queueEvent(event)
 
-    private fun addEntity(entity: Entity) {
-        val id = entityMapper.add(entity)
-        for (system in systems) {
-            if (isEntityMatchSystem(entity, system)) {
-                system.addEntity(id)
-            }
-        }
-        val event = entityAddedEvents.obtain()
-        event.pureEntity = entity
-        event.entityId = id
-        queueEvent(event)
-    }
+    internal fun queueInternalEvent(event: Event) = eventBus.queueInternalEvent(event)
+
+    internal fun componentPresenceChange(change: ComponentPresenceChange) =
+        subscriptionsManager.componentPresenceChange(change)
 
     fun createEntity(vararg components: Component) {
         if (components.isEmpty()) {
             throw IllegalArgumentException("Entity must have at least one component")
         }
-        addEntity(Entity.new(*components))
+        entityMapper.create(components)
     }
 
-    internal fun removeEntity(id: EntityID) {
-        val entity = entityMapper[id]
-        val event = entityRemovedEvents.obtain()
-        event.pureEntity = entity
-        event.entityId = id
-        queueEvent(event)
-        entityMapper.remove(id)
-        for (system in systems) {
-            if (isEntityMatchSystem(entity, system)) {
-                system.removeEntity(id)
-            }
-        }
-    }
+    internal fun removeEntity(id: EntityID) = entityMapper.requestRemove(id)
 
     fun addSystem(system: System) {
         checkSystemCorrectness(system)
         systems.add(system)
         system.world = this
+
+        // share same entities subscriptions instances between systems with equals aspect
+        var subscriptionsCopied = false
+        for (otherSystem in systems) {
+            if (otherSystem !== system && system.aspect == otherSystem.aspect) {
+                system.entitiesSubscription = otherSystem.entitiesSubscription
+                subscriptionsCopied = true
+                break
+            }
+        }
+        if (!subscriptionsCopied) {
+            val subscription = EntitiesSubscription(system.aspect)
+            system.entitiesSubscription = subscription
+            entityMapper.registerEntitiesSubscription(system.entitiesSubscription)
+            subscriptionsManager.add(subscription)
+        }
+
         if (system is EventSystem<*>) {
             eventBus.registerSystem(system)
-        }
-        if (system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()) {
-            system.addEntity(EntityID.DUMMY_ENTITY_ID)
-        }
-    }
-
-    fun removeSystem(system: System) {
-        systems.remove(system)
-        if (systems is EventSystem<*>) {
-            eventBus.removeSystem(systems)
-        }
-        if (system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()) {
-            system.removeEntity(EntityID.DUMMY_ENTITY_ID)
         }
     }
 
     fun clearEntities() {
-        for (system in systems) {
-            system.entityIDs.clear()
-        }
+        entityMapper.clear()
     }
 
     private fun checkSystemCorrectness(system: System) {
@@ -109,72 +94,6 @@ class World {
             throw IllegalStateException(
                     "System ${system::class} has no components in aspect. To use $usedName without components in aspect, use $needName instead of $usedName"
                 )
-        }
-    }
-
-    private fun isEntityMatchSystem(entity: Entity, system: System): Boolean {
-        if (system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()) {
-            return false
-        }
-        // exclude
-        for (component in system.aspect.exclude) {
-            if (entity.hasComponent(component)) {
-                return false
-            }
-        }
-        // any of
-        if (system.aspect.anyOf.isNotEmpty()) {
-            var anyOf = false
-            for (component in system.aspect.anyOf) {
-                if (entity.hasComponent(component)) {
-                    anyOf = true
-                    break
-                }
-            }
-            if (!anyOf) {
-                return false
-            }
-        }
-        // all of
-        for (component in system.aspect.allOf) {
-            if (!entity.hasComponent(component)) {
-                return false
-            }
-        }
-        return true
-    }
-
-
-
-    private inner class ComponentAddedSystem : SimpleEventSystem<ComponentAddedEvent>() {
-
-        override fun eventFired(event: ComponentAddedEvent) {
-            val entity = event.entity
-            for (system in systems) {
-                if (isEntityMatchSystem(entity.entity, system) && !system.entityIDs.contains(entity.entityID)) {
-                    system.addEntity(entity.entityID)
-                }
-                else {
-                    system.removeEntity(entity.entityID)
-                }
-            }
-        }
-    }
-
-
-
-    private inner class ComponentRemovedSystem : SimpleEventSystem<ComponentRemovedEvent>() {
-
-        override fun eventFired(event: ComponentRemovedEvent) {
-            val entity = event.entity
-            for (system in systems) {
-                if (isEntityMatchSystem(entity.entity, system) && !system.entityIDs.contains(entity.entityID)) {
-                    system.addEntity(entity.entityID)
-                }
-                else {
-                    system.removeEntity(entity.entityID)
-                }
-            }
         }
     }
 

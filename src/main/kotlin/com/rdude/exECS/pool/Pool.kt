@@ -1,10 +1,11 @@
 package com.rdude.exECS.pool
 
-import com.rdude.exECS.utils.collections.ArrayQueue
+import com.rdude.exECS.utils.collections.ArrayStack
+import kotlin.reflect.KClass
 
-class Pool<T : Poolable>(private val supplier: () -> T) {
+class Pool<T : Poolable>(private val supplier: () -> T, kClass: KClass<T>) {
 
-    private val queue: ArrayQueue<T> by lazy { ArrayQueue() }
+    private val queue: ArrayStack<T> by lazy { ArrayStack(kClass) }
 
     fun obtain() : T {
         var t = queue.poll()
@@ -16,5 +17,9 @@ class Pool<T : Poolable>(private val supplier: () -> T) {
     }
 
     fun retrieve(t: T) = queue.add(t)
+
+    companion object {
+        inline operator fun <reified T : Poolable> invoke(noinline supplier: () -> T) = Pool(supplier, T::class)
+    }
 
 }

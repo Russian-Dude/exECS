@@ -2,10 +2,10 @@ package com.rdude.exECS.utils.collections
 
 import kotlin.math.max
 
-class IntIterableArray(fixedCapacity: Boolean = false, vararg initialElements: Int) : Iterable<Int> {
+internal class IntIterableArray(fixedCapacity: Boolean = false, vararg initialElements: Int) : Iterable<Int> {
 
-    private var backingArray: IntArray
-    private var size = 0
+    internal var backingArray: IntArray
+    internal var size = 0
     private val iterator = ReusableIterator()
 
     init {
@@ -17,20 +17,20 @@ class IntIterableArray(fixedCapacity: Boolean = false, vararg initialElements: I
         size = initialElements.size
     }
 
-    fun add(element: Int) {
+    inline fun add(element: Int) {
         if (backingArray.size == size) {
             grow()
         }
         backingArray[size++] = element
     }
 
-    fun addAll(vararg elements: Int) {
+    inline fun addAll(vararg elements: Int) {
         for (element in elements) {
             add(element)
         }
     }
 
-    fun remove(element: Int) {
+    inline fun remove(element: Int) {
         for (i in 0 until size) {
             val current = backingArray[i]
             if (current == element) {
@@ -40,27 +40,33 @@ class IntIterableArray(fixedCapacity: Boolean = false, vararg initialElements: I
         }
     }
 
-    fun clear() {
+    inline fun removeIteratingElement() {
+        backingArray[iterator.current] = backingArray[--size]
+        backingArray[size] = 0
+        iterator.current--
+    }
+
+    inline fun clear() {
         backingArray.fill(0, 0, size)
         size = 0
     }
 
-    fun isEmpty() = size == 0
+    inline fun isEmpty() = size == 0
 
-    fun isNotEmpty() = size > 0
+    inline fun isNotEmpty() = size > 0
 
     override fun iterator(): Iterator<Int> {
         iterator.current = 0
         return iterator
     }
 
-    private fun grow() {
+    private inline fun grow() {
         backingArray = backingArray.copyOf(max(size, 1) * 2)
     }
 
 
 
-    private inner class ReusableIterator : Iterator<Int> {
+    internal inner class ReusableIterator : Iterator<Int> {
 
         var current = 0
 

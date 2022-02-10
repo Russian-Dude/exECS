@@ -4,16 +4,9 @@ import com.rdude.exECS.aspect.Aspect
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.ActingEvent
-import com.rdude.exECS.utils.collections.IterableArray
 import kotlin.reflect.KClass
 
 abstract class ActingSystem(override val aspect: Aspect = Aspect()) : EventSystem<ActingEvent>(aspect) {
-
-    constructor(
-        allOf: IterableArray<KClass<out Component>> = IterableArray(true),
-        anyOf: IterableArray<KClass<out Component>> = IterableArray(true),
-        exclude: IterableArray<KClass<out Component>> = IterableArray(true)
-    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = exclude))
 
     constructor(
         allOf: MutableList<KClass<out Component>> = mutableListOf(),
@@ -22,38 +15,37 @@ abstract class ActingSystem(override val aspect: Aspect = Aspect()) : EventSyste
     ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = exclude))
 
     constructor(
-        allOf: IterableArray<KClass<out Component>> = IterableArray(true),
-        anyOf: IterableArray<KClass<out Component>> = IterableArray(true),
+        allOf: MutableList<KClass<out Component>> = mutableListOf(),
+        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
         exclude: KClass<out Component>
-    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = IterableArray(true, exclude)))
+    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = mutableListOf(exclude)))
 
     constructor(
         allOf: KClass<out Component>,
-        anyOf: IterableArray<KClass<out Component>> = IterableArray(true),
+        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
         exclude: KClass<out Component>
-    ) : this(allOf = IterableArray(true, allOf), anyOf = anyOf, exclude = IterableArray(true, exclude))
+    ) : this(allOf = mutableListOf(allOf), anyOf = anyOf, exclude = mutableListOf(exclude))
 
     constructor(
         allOf: KClass<out Component>,
-        anyOf: IterableArray<KClass<out Component>> = IterableArray(true),
-        exclude: IterableArray<KClass<out Component>> = IterableArray(true)
-    ) : this(allOf = IterableArray(true, allOf), anyOf = anyOf, exclude = exclude)
+        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
+        exclude: MutableList<KClass<out Component>> = mutableListOf()
+    ) : this(allOf = mutableListOf(allOf), anyOf = anyOf, exclude = exclude)
 
     constructor(
         only: KClass<out Component>,
         exclude: KClass<out Component>
     ) : this(
-        allOf = IterableArray(true),
-        anyOf = IterableArray(true, only),
-        exclude = IterableArray(true, exclude)
-    )
+        allOf = mutableListOf(),
+        anyOf = mutableListOf(only),
+        exclude = mutableListOf(exclude))
 
     constructor(
         only: KClass<out Component>,
-        exclude: IterableArray<KClass<out Component>> = IterableArray(true)
+        exclude: MutableList<KClass<out Component>> = mutableListOf()
     ) : this(
-        allOf = IterableArray(true),
-        anyOf = IterableArray(true, only),
+        allOf = mutableListOf(),
+        anyOf = mutableListOf(only),
         exclude = exclude)
 
     constructor(only: KClass<out Component>): this(Aspect(only = only))

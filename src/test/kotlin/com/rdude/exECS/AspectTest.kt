@@ -1,6 +1,5 @@
 package com.rdude.exECS
 
-import com.rdude.exECS.aspect.and
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.system.ActingSystem

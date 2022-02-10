@@ -14,7 +14,7 @@ value class Entity private constructor(private val components: MutableMap<KClass
 
     fun hasComponent(componentClass: KClass<out Component>) = components.containsKey(componentClass)
 
-    fun hasComponents(vararg components: KClass<out Component>): Boolean {
+    fun hasComponents(components: Array<out KClass<out Component>>): Boolean {
         for (i in 0..components.size - 1) {
             if (!hasComponent(components[i])) {
                 return false
@@ -26,8 +26,6 @@ value class Entity private constructor(private val components: MutableMap<KClass
     fun addComponent(component: Component)  {
         components[component::class] = component
     }
-
-    private fun addComponentSilently(component: Component) = components.put(component::class, component)
 
     @Suppress("UNCHECKED_CAST")
     inline fun <reified T : Component> getComponent() : T? = getComponent(T::class)
@@ -53,10 +51,10 @@ value class Entity private constructor(private val components: MutableMap<KClass
 
         val DUMMY_ENTITY = Entity()
 
-        internal fun new(vararg components: Component): Entity {
+        internal fun new(components: Array<out Component>): Entity {
             val entity = Entity()
             for (i in 0..components.size - 1) {
-                entity.addComponentSilently(components[i])
+                entity.addComponent(components[i])
             }
             return entity
         }

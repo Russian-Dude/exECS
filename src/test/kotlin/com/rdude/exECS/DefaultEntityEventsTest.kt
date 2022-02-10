@@ -9,7 +9,6 @@ import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.system.SimpleEventSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.*
-import kotlin.test.assertContains
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
@@ -79,6 +78,9 @@ internal class DefaultEntityEventsTest {
     @Order(2)
     fun entityRemoved() {
         world.queueEvent(NeedToRemoveEntityEvent())
+        // first iteration - request
+        world.act(0.0)
+        // second - actual remove
         world.act(0.0)
         assert(entityRemovedSystem.component == checkComponent)
     }
