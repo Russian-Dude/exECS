@@ -22,7 +22,7 @@ internal class EntitiesSubscription(aspect: Aspect) {
     internal var hasEntities = UnsafeBitSet()
 
     // IDs of component types that are relevant for this subscription
-    private var componentTypeIDs = UnsafeBitSet(ComponentTypeIDsResolver.typesAmount)
+    private var componentTypeIDs = UnsafeBitSet(ComponentTypeIDsResolver.maxIndex)
 
     // If presence of entities was not changed there is no need to remove unused entities
     private var hasRemoveRequests = false

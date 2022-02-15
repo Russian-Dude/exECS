@@ -1,6 +1,6 @@
 package com.rdude.exECS.entity
 
-import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.*
 import com.rdude.exECS.component.ComponentPresenceChange
 import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.world.World
@@ -10,10 +10,11 @@ class EntityWrapper(val world: World) {
 
     internal var entity: Entity = Entity.DUMMY_ENTITY
     internal var entityID: EntityID = EntityID.DUMMY_ENTITY_ID
-    private var removed = false
 
 
     fun <T : Component> getComponent(componentClass: KClass<T>) : T? = entity.getComponent(componentClass)
+
+    fun <T : Component> getComponent(componentRetriever: ComponentRetriever<T>) : T? = entity.getComponent(componentRetriever)
 
     fun removeComponent(componentClass: KClass<out Component>) {
         val removedComponent = entity.removeComponent(componentClass)
@@ -69,5 +70,7 @@ class EntityWrapper(val world: World) {
     operator fun contains(componentClass: KClass<out Component>) = entity.hasComponent(componentClass)
 
     operator fun <T : Component> get(componentClass: KClass<T>) : T = entity[componentClass]
+
+    operator fun <T : Component> get(componentRetriever: ComponentRetriever<T>) : T = entity[componentRetriever]
 
 }

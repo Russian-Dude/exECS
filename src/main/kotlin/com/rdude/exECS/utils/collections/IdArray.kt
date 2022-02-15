@@ -12,7 +12,8 @@ internal class IdArray<T> private constructor(array: Array<T?>) {
     private var backingArray: Array<T?> = array
     private val emptyIDs = IntArrayStack()
     private val linkedBitSets = IterableArray<UnsafeBitSet>()
-    private var size = 0
+    internal var size = 0
+        private set
     private var lastIndex = 0
 
     inline operator fun get(index: Int) = backingArray[index]

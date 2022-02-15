@@ -1,20 +1,28 @@
 package com.rdude.exECS.entity
 
 import com.rdude.exECS.component.Component
-import java.util.*
+import com.rdude.exECS.component.ComponentRetriever
+import com.rdude.exECS.component.ComponentTypeID
+import com.rdude.exECS.component.ComponentTypeIDsResolver
 import kotlin.reflect.KClass
 
 @JvmInline
-value class Entity private constructor(private val components: MutableMap<KClass<out Component>, Component> = IdentityHashMap()) {
+internal value class Entity private constructor(private val components: Array<Component?> = Array(ComponentTypeIDsResolver.maxIndex) { null }) {
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Component> getComponent(componentClass: KClass<T>) : T? = components[componentClass] as T?
+    inline fun <T : Component> getComponent(componentClass: KClass<T>) : T? = components[ComponentTypeIDsResolver.idFor(componentClass).id] as T?
 
-    fun removeComponent(componentClass: KClass<out Component>) : Component? = components.remove(componentClass)
+    inline fun <T : Component> getComponent(componentRetriever: ComponentRetriever<T>) : T? = components[componentRetriever.componentTypeID.id] as T?
 
-    fun hasComponent(componentClass: KClass<out Component>) = components.containsKey(componentClass)
+    inline fun removeComponent(componentClass: KClass<out Component>) : Component? {
+        val prevComponent = components[ComponentTypeIDsResolver.idFor(componentClass).id]
+        components[ComponentTypeIDsResolver.idFor(componentClass).id] = null
+        return prevComponent
+    }
 
-    fun hasComponents(components: Array<out KClass<out Component>>): Boolean {
+    inline fun hasComponent(componentClass: KClass<out Component>) = getComponent(componentClass) != null
+
+    inline fun hasComponents(components: Array<out KClass<out Component>>): Boolean {
         for (i in 0..components.size - 1) {
             if (!hasComponent(components[i])) {
                 return false
@@ -23,8 +31,8 @@ value class Entity private constructor(private val components: MutableMap<KClass
         return true
     }
 
-    fun addComponent(component: Component)  {
-        components[component::class] = component
+    inline fun addComponent(component: Component)  {
+        components[ComponentTypeIDsResolver.idFor(component::class).id] = component
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -34,17 +42,20 @@ value class Entity private constructor(private val components: MutableMap<KClass
 
     inline fun <reified T : Component> hasComponent() = hasComponent(T::class)
 
-    operator fun plusAssign(component: Component) {
+    inline operator fun plusAssign(component: Component) {
         addComponent(component)
     }
 
-    operator fun minusAssign(componentClass: KClass<out Component>)  {
+    inline operator fun minusAssign(componentClass: KClass<out Component>)  {
         removeComponent(componentClass)
     }
 
-    operator fun contains(componentClass: KClass<out Component>) = hasComponent(componentClass)
+    inline operator fun contains(componentClass: KClass<out Component>) = hasComponent(componentClass)
 
-    operator fun <T : Component> get(componentClass: KClass<T>) : T = getComponent(componentClass) as T
+    inline operator fun <T : Component> get(componentClass: KClass<T>) : T = getComponent(componentClass) as T
+
+    inline operator fun <T : Component> get(componentRetriever: ComponentRetriever<T>) : T =
+        components[componentRetriever.componentTypeID.id] as T
 
 
     companion object {
