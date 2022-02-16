@@ -6,7 +6,7 @@ import com.rdude.exECS.entity.EntityID
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.world.World
 
-class ComponentAddedEvent internal constructor(world: World) : PoolableEvent() {
+class ComponentAddedEvent internal constructor(world: World) : InternalPoolableEvent() {
 
     internal var pureEntity: Entity = Entity.DUMMY_ENTITY
         set(value) {

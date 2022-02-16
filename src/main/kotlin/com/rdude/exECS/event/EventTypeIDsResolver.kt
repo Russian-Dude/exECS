@@ -1,10 +1,10 @@
-package com.rdude.exECS.component
+package com.rdude.exECS.event
 
 import com.rdude.exECS.utils.hash.HashFunctionGenerator
 import com.rdude.exECS.utils.reflection.ReflectionUtils
 import kotlin.reflect.KClass
 
-internal object ComponentTypeIDsResolver {
+internal object EventTypeIDsResolver {
 
     private val divider: Int
     private val modulo: Int
@@ -13,7 +13,7 @@ internal object ComponentTypeIDsResolver {
     internal val size: Int
 
     init {
-        val allComponentClasses = ReflectionUtils.getNotAbstractSubClassesFromAllPackages(Component::class)
+        val allComponentClasses = ReflectionUtils.getNotAbstractSubClassesFromAllPackages(Event::class)
         val functionArguments = HashFunctionGenerator.generateFunctionArguments(allComponentClasses)
         size = functionArguments.size
         divider = functionArguments.divider
@@ -21,9 +21,9 @@ internal object ComponentTypeIDsResolver {
         hasModulo = functionArguments.hasModulo
     }
 
-    fun idFor(componentClass: KClass<out Component>): ComponentTypeID = ComponentTypeID(
-        if (hasModulo) (componentClass.hashCode() / divider) % modulo
-        else componentClass.hashCode() / divider
+    fun idFor(eventClass: KClass<out Event>): EventTypeID = EventTypeID(
+        if (hasModulo) (eventClass.hashCode() / divider) % modulo
+        else eventClass.hashCode() / divider
     )
 
 }

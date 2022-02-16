@@ -1,6 +1,5 @@
 package com.rdude.exECS.utils.reflection
 
-import com.rdude.exECS.component.Component
 import org.reflections.Reflections
 import kotlin.reflect.KClass
 
@@ -8,13 +7,13 @@ internal object ReflectionUtils {
 
     internal val eventSystemGenericQualifier = EventSystemGenericQualifier()
 
-    internal fun getAllComponentClasses() : Set<KClass<out Component>> {
+    internal fun <T : Any> getNotAbstractSubClassesFromAllPackages(kClass: KClass<T>) : Set<KClass<out T>> {
         return Package.getPackages()
             .asSequence()
             .map { it.name.substringBefore('.') }
             .distinct()
             .map { Reflections(it) }
-            .flatMap { it.getSubTypesOf(Component::class.java) }
+            .flatMap { it.getSubTypesOf(kClass.java) }
             .map { it.kotlin }
             .filterNot { it.isAbstract }
             .toSet()

@@ -2,12 +2,11 @@ package com.rdude.exECS.entity
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentRetriever
-import com.rdude.exECS.component.ComponentTypeID
 import com.rdude.exECS.component.ComponentTypeIDsResolver
 import kotlin.reflect.KClass
 
 @JvmInline
-internal value class Entity private constructor(private val components: Array<Component?> = Array(ComponentTypeIDsResolver.maxIndex) { null }) {
+internal value class Entity private constructor(private val components: Array<Component?> = Array(ComponentTypeIDsResolver.size) { null }) {
 
     @Suppress("UNCHECKED_CAST")
     inline fun <T : Component> getComponent(componentClass: KClass<T>) : T? = components[ComponentTypeIDsResolver.idFor(componentClass).id] as T?

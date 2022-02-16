@@ -1,3 +1,3 @@
 package com.rdude.exECS.event
 
-class ActingEvent(var delta: Double) : Event
+class ActingEvent(var delta: Double) : InternalEvent()

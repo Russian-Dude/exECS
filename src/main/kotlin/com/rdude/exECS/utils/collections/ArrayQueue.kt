@@ -42,7 +42,7 @@ internal class ArrayQueue<T> private constructor(array: Array<T?>){
     }
 
     companion object {
-        internal inline fun <reified T> create() = ArrayQueue<T>(Array(16) { null })
+        internal inline operator fun <reified T> invoke() = ArrayQueue<T>(Array(16) { null })
     }
 
 

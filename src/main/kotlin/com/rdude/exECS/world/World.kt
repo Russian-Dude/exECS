@@ -17,8 +17,8 @@ class World {
     private val systems = IterableArray<System>()
     internal val entityMapper = EntityMapper(this)
     internal val entityWrapper = EntityWrapper(this)
-    private val eventBus = EventBus()
     private val actingEvent = ActingEvent(0.0)
+    private val eventBus = EventBus(actingEvent)
     internal val subscriptionsManager = SubscriptionsManager(this)
     internal val componentAddedEventPool = Pool { ComponentAddedEvent(this) }
     internal val componentRemovedEventPool = Pool { ComponentRemovedEvent(this) }
@@ -31,15 +31,14 @@ class World {
         eventBus.fireInternalEvents()
         // actualize data
         entityMapper.actualize()
-        // main events
+        // set delta of main events
         actingEvent.delta = delta
-        eventBus.queueEvent(actingEvent)
         eventBus.fireEvents()
     }
 
     fun queueEvent(event: Event) = eventBus.queueEvent(event)
 
-    internal fun queueInternalEvent(event: Event) = eventBus.queueInternalEvent(event)
+    internal fun queueInternalEvent(event: InternalEvent) = eventBus.queueInternalEvent(event)
 
     internal fun componentPresenceChange(change: ComponentPresenceChange) =
         subscriptionsManager.componentPresenceChange(change)

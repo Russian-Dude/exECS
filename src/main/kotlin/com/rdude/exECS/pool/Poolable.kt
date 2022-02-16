@@ -4,4 +4,6 @@ interface Poolable {
 
     var pool: Pool<Poolable>
 
+    fun returnToPool() = pool.retrieve(this)
+
 }
