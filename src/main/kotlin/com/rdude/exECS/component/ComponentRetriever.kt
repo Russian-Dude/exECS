@@ -2,7 +2,8 @@ package com.rdude.exECS.component
 
 import kotlin.reflect.KClass
 
-class ComponentRetriever<T : Component> private constructor(internal val componentTypeID: ComponentTypeID) {
+@JvmInline
+value class ComponentRetriever<T : Component> private constructor(internal val componentTypeID: ComponentTypeID) {
 
     companion object {
 
