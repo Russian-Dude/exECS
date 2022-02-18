@@ -10,43 +10,44 @@ import kotlin.reflect.KClass
 abstract class EventSystem<T : Event> (override val aspect: Aspect = Aspect()): System() {
 
     constructor(
-        allOf: MutableList<KClass<out Component>> = mutableListOf(),
-        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
-        exclude: MutableList<KClass<out Component>> = mutableListOf()
+        allOf: List<KClass<out Component>> = listOf(),
+        anyOf: List<KClass<out Component>> = listOf(),
+        exclude: List<KClass<out Component>> = listOf()
     ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = exclude))
 
     constructor(
-        allOf: MutableList<KClass<out Component>> = mutableListOf(),
-        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
+        allOf: List<KClass<out Component>> = listOf(),
+        anyOf: List<KClass<out Component>> = listOf(),
         exclude: KClass<out Component>
-    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = mutableListOf(exclude)))
+    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = listOf(exclude)))
 
     constructor(
         allOf: KClass<out Component>,
-        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
+        anyOf: List<KClass<out Component>> = listOf(),
         exclude: KClass<out Component>
-    ) : this(allOf = mutableListOf(allOf), anyOf = anyOf, exclude = mutableListOf(exclude))
+    ) : this(allOf = listOf(allOf), anyOf = anyOf, exclude = listOf(exclude))
 
     constructor(
         allOf: KClass<out Component>,
-        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
-        exclude: MutableList<KClass<out Component>> = mutableListOf()
-    ) : this(allOf = mutableListOf(allOf), anyOf = anyOf, exclude = exclude)
+        anyOf: List<KClass<out Component>> = listOf(),
+        exclude: List<KClass<out Component>> = listOf()
+    ) : this(allOf = listOf(allOf), anyOf = anyOf, exclude = exclude)
 
     constructor(
         only: KClass<out Component>,
         exclude: KClass<out Component>
     ) : this(
-        allOf = mutableListOf(),
-        anyOf = mutableListOf(only),
-        exclude = mutableListOf(exclude))
+        allOf = listOf(),
+        anyOf = listOf(only),
+        exclude = listOf(exclude)
+    )
 
     constructor(
         only: KClass<out Component>,
-        exclude: MutableList<KClass<out Component>> = mutableListOf()
+        exclude: List<KClass<out Component>> = listOf()
     ) : this(
-        allOf = mutableListOf(),
-        anyOf = mutableListOf(only),
+        allOf = listOf(),
+        anyOf = listOf(only),
         exclude = exclude)
 
     constructor(only: KClass<out Component>): this(Aspect(only = only))

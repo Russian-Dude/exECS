@@ -4,49 +4,48 @@ import com.rdude.exECS.component.Component
 import kotlin.reflect.KClass
 
 class Aspect(
-    internal val allOf: MutableList<KClass<out Component>> = mutableListOf(),
-    internal val anyOf: MutableList<KClass<out Component>> = mutableListOf(),
-    internal val exclude: MutableList<KClass<out Component>> = mutableListOf()
+    internal val allOf: List<KClass<out Component>> = listOf(),
+    internal val anyOf: List<KClass<out Component>> = listOf(),
+    internal val exclude: List<KClass<out Component>> = listOf()
 ) {
 
-    constructor(): this(mutableListOf(), mutableListOf(), mutableListOf())
+    constructor(): this(listOf(), listOf(), listOf())
 
-    constructor(only: KClass<out Component>): this() {
-        anyOf.add(only)
-    }
+    constructor(only: KClass<out Component>): this(anyOf = listOf(only))
 
     constructor(
-        allOf: MutableList<KClass<out Component>> = mutableListOf(),
-        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
+        allOf: List<KClass<out Component>> = listOf(),
+        anyOf: List<KClass<out Component>> = listOf(),
         exclude: KClass<out Component>
-    ) : this(allOf = allOf, anyOf = anyOf, exclude = mutableListOf(exclude))
+    ) : this(allOf = allOf, anyOf = anyOf, exclude = listOf(exclude))
 
     constructor(
         allOf: KClass<out Component>,
-        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
+        anyOf: List<KClass<out Component>> = listOf(),
         exclude: KClass<out Component>
-    ) : this(allOf = mutableListOf(allOf), anyOf = anyOf, exclude = mutableListOf(exclude))
+    ) : this(allOf = listOf(allOf), anyOf = anyOf, exclude = listOf(exclude))
 
     constructor(
         allOf: KClass<out Component>,
-        anyOf: MutableList<KClass<out Component>> = mutableListOf(),
-        exclude: MutableList<KClass<out Component>> = mutableListOf()
-    ) : this(allOf = mutableListOf(allOf), anyOf = anyOf, exclude = exclude)
+        anyOf: List<KClass<out Component>> = listOf(),
+        exclude: List<KClass<out Component>> = listOf()
+    ) : this(allOf = listOf(allOf), anyOf = anyOf, exclude = exclude)
 
     constructor(
         only: KClass<out Component>,
         exclude: KClass<out Component>
     ) : this(
-        allOf = mutableListOf(),
-        anyOf = mutableListOf(only),
-        exclude = mutableListOf(exclude))
+        allOf = listOf(),
+        anyOf = listOf(only),
+        exclude = listOf(exclude)
+    )
 
     constructor(
         only: KClass<out Component>,
-        exclude: MutableList<KClass<out Component>> = mutableListOf()
+        exclude: List<KClass<out Component>> = listOf()
     ) : this(
-        allOf = mutableListOf(),
-        anyOf = mutableListOf(only),
+        allOf = listOf(),
+        anyOf = listOf(only),
         exclude = exclude)
 
     override fun equals(other: Any?): Boolean {
@@ -65,7 +64,7 @@ class Aspect(
         return result
     }
 
-    private infix fun MutableList<*>.equalsWithAnyOrder(other: MutableList<*>): Boolean {
+    private infix fun List<*>.equalsWithAnyOrder(other: List<*>): Boolean {
         if (this === other) return true
         if (size != other.size) return false
         for (i in 0..this.size - 1) {
@@ -81,7 +80,7 @@ class Aspect(
         return true
     }
 
-    private infix fun MutableList<*>.notEqualsWithAnyOrder(other: MutableList<*>) = !equalsWithAnyOrder(other)
+    private infix fun List<*>.notEqualsWithAnyOrder(other: List<*>) = !equalsWithAnyOrder(other)
 
 
 }
