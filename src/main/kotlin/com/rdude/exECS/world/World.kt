@@ -14,7 +14,7 @@ import com.rdude.exECS.utils.collections.IterableArray
 
 class World {
 
-    private val systems = IterableArray<System>()
+    internal val systems = IterableArray<System>()
     internal val entityMapper = EntityMapper(this)
     internal val entityWrapper = EntityWrapper(this)
     private val actingEvent = ActingEvent(0.0)

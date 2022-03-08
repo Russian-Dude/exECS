@@ -4,6 +4,7 @@ import com.rdude.exECS.aspect.Aspect
 import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.event.Event
+import com.rdude.exECS.inject.InjectedSystem
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
@@ -16,6 +17,8 @@ abstract class System {
     fun createEntity(vararg components: Component) = world.createEntity(*components)
 
     fun queueEvent(event: Event) = world.queueEvent(event)
+
+    protected inline fun <reified T : System> inject() = InjectedSystem(T::class)
 
     override fun toString(): String {
         return "System-${this::class.simpleName}"
