@@ -1,20 +1,13 @@
 package com.rdude.exECS.event
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.Entity
-import com.rdude.exECS.entity.EntityID
 import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.utils.Dummies
 import com.rdude.exECS.world.World
 
 class ComponentAddedEvent internal constructor(world: World) : InternalPoolableEvent() {
 
-    internal var pureEntity: Entity = Entity.DUMMY_ENTITY
-        set(value) {
-            field = value
-            entity.entity = value
-        }
-
-    internal var entityId: EntityID = EntityID.DUMMY_ENTITY_ID
+    internal var entityId: Int = Dummies.DUMMY_ENTITY_ID
         set(value) {
             field = value
             entity.entityID = value
@@ -24,5 +17,10 @@ class ComponentAddedEvent internal constructor(world: World) : InternalPoolableE
 
     lateinit var component: Component
         internal set
+
+    var replacedComponent: Component? = null
+        internal set
+
+    val replaced = replacedComponent != null
 
 }

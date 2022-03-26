@@ -18,11 +18,10 @@ internal class SubscriptionsManager(val world: World) {
 
     internal fun handleEntitiesAdded(entities: IntIterableArray) {
         for (id in entities) {
-            val entityID = EntityID(id)
             for (subscription in subscriptions) {
-                val entityMatchAspect = subscription.isEntityMatchAspect(world.entityMapper[entityID])
+                val entityMatchAspect = subscription.isEntityMatchAspect(id, world.entityMapper)
                 if (entityMatchAspect) {
-                    subscription.addEntity(entityID)
+                    subscription.addEntity(id)
                 }
             }
         }
@@ -43,10 +42,10 @@ internal class SubscriptionsManager(val world: World) {
             val componentTypeID = change.componentId()
             for (subscription in subscriptions) {
                 if (subscription.isSubscribedToType(componentTypeID)) {
-                    val entityMatchAspect = subscription.isEntityMatchAspect(world.entityMapper[entityID])
-                    val hasEntity = subscription.hasEntities[entityID.id]
+                    val entityMatchAspect = subscription.isEntityMatchAspect(entityID, world.entityMapper)
+                    val hasEntity = subscription.hasEntities[entityID]
                     if (!entityMatchAspect && hasEntity) {
-                        subscription.setHasNotEntity(entityID.id)
+                        subscription.setHasNotEntity(entityID)
                     }
                     else if (entityMatchAspect && !hasEntity) {
                         subscription.addEntity(entityID)

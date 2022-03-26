@@ -1,61 +1,37 @@
 package com.rdude.exECS.entity
 
-import com.rdude.exECS.component.*
-import com.rdude.exECS.component.ComponentPresenceChange
+import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentTypeIDsResolver
+import com.rdude.exECS.utils.Dummies
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
+/**
+ * Wraps entity ID.
+ * Do not store reference to entity wrapper because wrapped ID is changed consistently.
+ * If compiler plugin is used, explicit calls to methods will be optimized at compile time by the plugin.
+ * Implicit calls will remain as is.
+ */
 class EntityWrapper(val world: World) {
 
-    internal var entity: Entity = Entity.DUMMY_ENTITY
-    internal var entityID: EntityID = EntityID.DUMMY_ENTITY_ID
+    var entityID: Int = Dummies.DUMMY_ENTITY_ID
+        internal set
 
 
-    fun <T : Component> getComponent(componentClass: KClass<T>) : T? = entity.getComponent(componentClass)
-
-    fun <T : Component> getComponent(componentRetriever: ComponentRetriever<T>) : T? = entity.getComponent(componentRetriever)
+    fun <T : Component> getComponent(componentClass: KClass<T>) : T? =
+        world.entityMapper.componentMappers[ComponentTypeIDsResolver.idFor(componentClass)][entityID] as T?
 
     fun removeComponent(componentClass: KClass<out Component>) {
-        val removedComponent = entity.removeComponent(componentClass)
-        if (removedComponent != null) {
-            // notify subscribersManager
-            world.componentPresenceChange(ComponentPresenceChange(
-                entityID = entityID,
-                componentId = ComponentTypeIDsResolver.idFor(componentClass),
-                removed = true))
-            // queue event
-            val event = world.componentRemovedEventPool.obtain()
-            event.component = removedComponent
-            event.pureEntity = entity
-            event.entityId = entityID
-            world.queueInternalEvent(event)
-        }
+        world.entityMapper.componentMappers[ComponentTypeIDsResolver.idFor(componentClass)][entityID] = null
     }
 
-    fun hasComponent(componentClass: KClass<out Component>) = entity.hasComponent(componentClass)
+    fun hasComponent(componentClass: KClass<out Component>): Boolean =
+        world.entityMapper.componentMappers[ComponentTypeIDsResolver.idFor(componentClass)].hasComponent(entityID)
 
-    fun hasComponents(vararg components: KClass<out Component>) = entity.hasComponents(components)
+    fun addComponent(component: Component) =
+        world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
 
-    fun addComponent(component: Component) {
-        // add component to the actual entity
-        entity.addComponent(component)
-        // notify subscribersManager
-        world.componentPresenceChange(ComponentPresenceChange(
-            entityID = entityID,
-            componentId = ComponentTypeIDsResolver.idFor(component::class),
-            removed = false))
-        // queue event
-        val event = world.componentAddedEventPool.obtain()
-        event.component = component
-        event.pureEntity = entity
-        event.entityId = entityID
-        world.queueInternalEvent(event)
-    }
-
-    fun remove()  {
-        world.removeEntity(entityID)
-    }
+    fun remove() = world.removeEntity(entityID)
 
     inline fun <reified T : Component> getComponent() : T? = getComponent(T::class)
 
@@ -67,10 +43,9 @@ class EntityWrapper(val world: World) {
 
     operator fun minusAssign(componentClass: KClass<out Component>) = removeComponent(componentClass)
 
-    operator fun contains(componentClass: KClass<out Component>) = entity.hasComponent(componentClass)
+    operator fun contains(componentClass: KClass<out Component>) = hasComponent(componentClass)
 
-    operator fun <T : Component> get(componentClass: KClass<T>) : T = entity[componentClass]
-
-    operator fun <T : Component> get(componentRetriever: ComponentRetriever<T>) : T = entity[componentRetriever]
+    operator fun <T : Component> get(componentClass: KClass<T>) =
+        getComponent(componentClass) ?: throw IllegalStateException("Entity does not have a component of type $componentClass.")
 
 }

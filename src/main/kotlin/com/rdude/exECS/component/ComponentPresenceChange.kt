@@ -1,6 +1,5 @@
 package com.rdude.exECS.component
 
-import com.rdude.exECS.entity.EntityID
 import kotlin.math.abs
 
 /**
@@ -12,12 +11,12 @@ import kotlin.math.abs
 @JvmInline
 internal value class ComponentPresenceChange(val data: Long) {
 
-    constructor(entityID: EntityID, componentId: ComponentTypeID, removed: Boolean)
-            : this(((entityID.id.toLong() shl 32) + componentId.id) * if (removed) -1 else 1)
+    constructor(entityID: Int, componentId: Int, removed: Boolean)
+            : this(((entityID.toLong() shl 32) + componentId) * if (removed) -1 else 1)
 
-    inline fun entityId(): EntityID = EntityID((abs(data) shr 32).toInt())
+    inline fun entityId(): Int = (abs(data) shr 32).toInt()
 
-    inline fun componentId(): ComponentTypeID = ComponentTypeID(abs(data).toInt())
+    inline fun componentId(): Int = abs(data).toInt()
 
     inline fun isRemoved(): Boolean = data < 0
 

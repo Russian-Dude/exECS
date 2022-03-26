@@ -3,7 +3,9 @@ package com.rdude.exECS.world
 import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.ComponentMapper
 import com.rdude.exECS.component.ComponentPresenceChange
+import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.entity.EntityID
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.entity.EntityWrapper
@@ -23,7 +25,6 @@ class World {
     internal val componentAddedEventPool = Pool { ComponentAddedEvent(this) }
     internal val componentRemovedEventPool = Pool { ComponentRemovedEvent(this) }
 
-
     fun act(delta: Double) {
         // update systems' entities
         entityMapper.notifySubscriptionsManager()
@@ -33,6 +34,7 @@ class World {
         entityMapper.actualize()
         // set delta of main events
         actingEvent.delta = delta
+        // fire events
         eventBus.fireEvents()
     }
 
@@ -50,12 +52,12 @@ class World {
         entityMapper.create(components)
     }
 
-    internal fun removeEntity(id: EntityID) = entityMapper.requestRemove(id)
+    internal fun removeEntity(id: Int) = entityMapper.requestRemove(id)
 
     fun addSystem(system: System) {
         checkSystemCorrectness(system)
         systems.add(system)
-        system.world = this
+        system.setWorld(this)
 
         // share same entities subscriptions instances between systems with equals aspect
         var subscriptionsCopied = false

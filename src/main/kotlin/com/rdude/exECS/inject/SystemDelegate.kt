@@ -1,11 +1,10 @@
 package com.rdude.exECS.inject
 
 import com.rdude.exECS.system.System
-import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
-class InjectedSystem<T : System>(private val cl: KClass<T>) {
+class SystemDelegate<T : System>(private val cl: KClass<T>) {
 
     private var system: T? = null
 

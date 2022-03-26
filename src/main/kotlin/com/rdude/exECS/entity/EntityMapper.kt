@@ -2,17 +2,33 @@ package com.rdude.exECS.entity
 
 import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.ComponentMapper
+import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.event.EntityAddedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.pool.Pool
-import com.rdude.exECS.utils.collections.IdArray
+import com.rdude.exECS.utils.collections.IntArrayStack
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
+import com.rdude.exECS.utils.collections.UnsafeBitSet
 import com.rdude.exECS.world.World
+
 internal class EntityMapper(private var world: World) {
 
-    // Stores all actual entities
-    private var backingArray = IdArray<Entity>()
+    // Current backing array size of component mappers
+    // Stored here to calculate new size only once and only when entity with id that exceeds current size is added
+    private var componentMappersSize: Int = 16
+
+    internal val componentMappers: Array<ComponentMapper<*>> = Array(ComponentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
+
+    // Current amount of entities
+    private var size: Int = 1
+
+    // Grow bitsets at the same time as component mappers will grow
+    private val linkedBitSets = IterableArray<UnsafeBitSet>()
+
+    // Ids that can be reused
+    private val emptyIds = IntArrayStack()
 
     // Indexes of the backing array cells that will be cleared after actualize() call
     // This array will be cleared only after all remove events fired
@@ -29,16 +45,12 @@ internal class EntityMapper(private var world: World) {
     private val entityRemovedEvents = Pool { EntityRemovedEvent(world) }
 
 
-    init {
-        backingArray[EntityID.DUMMY_ENTITY_ID.id] = Entity.DUMMY_ENTITY
-    }
-
-
     internal fun registerEntitiesSubscription(subscription: EntitiesSubscription) {
         entitiesSubscriptions.add(subscription)
-        backingArray.linkBitSet(subscription.hasEntities)
+        linkedBitSets.add(subscription.hasEntities)
     }
 
+    // TODO not call this every tick
     internal fun notifySubscriptionsManager() {
         val subscriptionsManager = world.subscriptionsManager
         subscriptionsManager.handleEntitiesAdded(freshAddedEntities)
@@ -49,27 +61,37 @@ internal class EntityMapper(private var world: World) {
 
 
     fun create(components: Array<out Component>) {
-        val entity = Entity.new(components)
-        val id = backingArray.add(entity)
+        val id = if (emptyIds.isNotEmpty()) emptyIds.unsafePoll() else size
+        size++
+        // grow growables if needed
+        if (size >= componentMappersSize) {
+            componentMappersSize *= 2
+            componentMappers.forEach { it.grow(componentMappersSize) }
+            linkedBitSets.forEach { it.growIfNeeded(componentMappersSize) }
+        }
+        // add components to component mappers
+        components.forEach {
+            componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
+        }
         // add to fresh entities
         freshAddedEntities.add(id)
         // queue event
         val event = entityAddedEvents.obtain()
-        event.pureEntity = entity
-        event.entityId = EntityID(id)
+        event.entityId = id
         world.queueInternalEvent(event)
     }
 
-    fun requestRemove(id: EntityID) {
-        removeRequests.add(id.id)
+    fun requestRemove(id: Int) {
+        removeRequests.add(id)
         val event = entityRemovedEvents.obtain()
-        event.pureEntity = backingArray[id.id]!!
         event.entityId = id
         world.queueInternalEvent(event)
     }
 
     private fun remove(id: Int) {
-        backingArray[id] = null
+        size--
+        emptyIds.add(id)
+        componentMappers.forEach { it[id] = null }
     }
 
     fun actualize() {
@@ -83,15 +105,13 @@ internal class EntityMapper(private var world: World) {
     }
 
     fun clear() {
-        backingArray.clear()
+        componentMappers.forEach { it.clear() }
         removeRequests.clear()
         freshAddedEntities.clear()
         for (subscription in entitiesSubscriptions) {
             subscription.clearEntities()
         }
     }
-
-    operator fun get(id: EntityID) : Entity = backingArray[id.id] as Entity
 
 }
 
