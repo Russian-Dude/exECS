@@ -3,12 +3,8 @@ package com.rdude.exECS.world
 import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.component.ComponentMapper
 import com.rdude.exECS.component.ComponentPresenceChange
-import com.rdude.exECS.component.ComponentTypeIDsResolver
-import com.rdude.exECS.entity.EntityID
 import com.rdude.exECS.entity.EntityMapper
-import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.*
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.system.*
@@ -18,12 +14,11 @@ class World {
 
     internal val systems = IterableArray<System>()
     internal val entityMapper = EntityMapper(this)
-    internal val entityWrapper = EntityWrapper(this)
     private val actingEvent = ActingEvent(0.0)
     private val eventBus = EventBus(actingEvent)
     internal val subscriptionsManager = SubscriptionsManager(this)
-    internal val componentAddedEventPool = Pool { ComponentAddedEvent(this) }
-    internal val componentRemovedEventPool = Pool { ComponentRemovedEvent(this) }
+    internal val componentAddedEventPool = Pool { ComponentAddedEvent() }
+    internal val componentRemovedEventPool = Pool { ComponentRemovedEvent() }
 
     fun act(delta: Double) {
         // update systems' entities

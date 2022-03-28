@@ -3,17 +3,11 @@ package com.rdude.exECS.event
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.utils.Dummies
-import com.rdude.exECS.world.World
 
-class ComponentRemovedEvent internal constructor(world: World) : InternalPoolableEvent() {
+class ComponentRemovedEvent internal constructor() : InternalPoolableEvent() {
 
-    internal var entityId: Int = Dummies.DUMMY_ENTITY_ID
-        set(value) {
-            field = value
-            entity.entityID = value
-        }
-
-    val entity: EntityWrapper = EntityWrapper(world)
+    var entity: EntityWrapper = Dummies.DUMMY_ENTITY_WRAPPER
+        internal set
 
     lateinit var component: Component
         internal set

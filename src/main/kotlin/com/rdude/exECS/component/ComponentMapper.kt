@@ -1,5 +1,6 @@
 package com.rdude.exECS.component
 
+import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
@@ -41,7 +42,7 @@ class ComponentMapper<T : Component> private constructor(
             // queue event
             val event = world.componentRemovedEventPool.obtain()
             event.component = removedComponent
-            event.entityId = id
+            event.entity = EntityWrapper(id)
             world.queueInternalEvent(event)
         }
     }
@@ -58,7 +59,7 @@ class ComponentMapper<T : Component> private constructor(
         // queue events
         val event = world.componentAddedEventPool.obtain()
         event.component = component
-        event.entityId = id
+        event.entity = EntityWrapper(id)
         event.replacedComponent = removedComponent
         world.queueInternalEvent(event)
     }

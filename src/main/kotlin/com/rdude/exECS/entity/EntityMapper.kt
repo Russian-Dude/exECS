@@ -41,8 +41,8 @@ internal class EntityMapper(private var world: World) {
     private var entitiesSubscriptions = IterableArray<EntitiesSubscription>()
 
     // Event pools. Events will be queued to the world's event bus at the end of actualize() call
-    private val entityAddedEvents = Pool { EntityAddedEvent(world) }
-    private val entityRemovedEvents = Pool { EntityRemovedEvent(world) }
+    private val entityAddedEvents = Pool { EntityAddedEvent() }
+    private val entityRemovedEvents = Pool { EntityRemovedEvent() }
 
 
     internal fun registerEntitiesSubscription(subscription: EntitiesSubscription) {
@@ -77,14 +77,14 @@ internal class EntityMapper(private var world: World) {
         freshAddedEntities.add(id)
         // queue event
         val event = entityAddedEvents.obtain()
-        event.entityId = id
+        event.entity = EntityWrapper(id)
         world.queueInternalEvent(event)
     }
 
     fun requestRemove(id: Int) {
         removeRequests.add(id)
         val event = entityRemovedEvents.obtain()
-        event.entityId = id
+        event.entity = EntityWrapper(id)
         world.queueInternalEvent(event)
     }
 

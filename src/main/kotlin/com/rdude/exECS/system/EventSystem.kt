@@ -2,7 +2,6 @@ package com.rdude.exECS.system
 
 import com.rdude.exECS.aspect.Aspect
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.EntityID
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.Event
 import kotlin.reflect.KClass
@@ -57,9 +56,7 @@ abstract class EventSystem<T : Event> (override val aspect: Aspect = Aspect()): 
 
     internal fun fireEvent(event: T) {
         for (id in entitiesSubscription.entityIDs) {
-            val entityWrapper = world.entityWrapper
-            entityWrapper.entityID = id
-            eventFired(entityWrapper, event)
+            eventFired(EntityWrapper(id), event)
         }
     }
 
