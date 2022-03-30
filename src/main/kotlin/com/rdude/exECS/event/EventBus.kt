@@ -30,7 +30,7 @@ class EventBus(mainEvent: ActingEvent) {
                 actingEventSubscribers.add(system as EventSystem<ActingEvent>)
             }
             else {
-                eventsToSystems[EventTypeIDsResolver.idFor(eventClass).id].add(system)
+                eventsToSystems[EventTypeIDsResolver.idFor(eventClass)].add(system)
             }
         }
     }
@@ -42,7 +42,7 @@ class EventBus(mainEvent: ActingEvent) {
                 actingEventSubscribers.remove(system as EventSystem<ActingEvent>)
             }
             else {
-                eventsToSystems[EventTypeIDsResolver.idFor(eventClass).id].remove(system)
+                eventsToSystems[EventTypeIDsResolver.idFor(eventClass)].remove(system)
             }
         }
     }
@@ -60,7 +60,7 @@ class EventBus(mainEvent: ActingEvent) {
         // fire other queued events
         var event = eventQueue.poll()
         while (event != null) {
-            val iterableArray = eventsToSystems[EventTypeIDsResolver.idFor(event::class).id]
+            val iterableArray = eventsToSystems[event.getTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
                 system.fireEvent(event)
             }
@@ -75,7 +75,7 @@ class EventBus(mainEvent: ActingEvent) {
     internal fun fireInternalEvents() {
         var event = internalEventQueue.poll()
         while (event != null) {
-            val iterableArray = eventsToSystems[event.id.id]
+            val iterableArray = eventsToSystems[event.getTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
                 system.fireEvent(event)
             }

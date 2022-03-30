@@ -50,7 +50,6 @@ internal class EntityMapper(private var world: World) {
         linkedBitSets.add(subscription.hasEntities)
     }
 
-    // TODO not call this every tick
     internal fun notifySubscriptionsManager() {
         val subscriptionsManager = world.subscriptionsManager
         subscriptionsManager.handleEntitiesAdded(freshAddedEntities)
@@ -58,7 +57,6 @@ internal class EntityMapper(private var world: World) {
         subscriptionsManager.handleComponentPresenceChanges()
         subscriptionsManager.removeUnusedEntities()
     }
-
 
     fun create(components: Array<out Component>) {
         val id = if (emptyIds.isNotEmpty()) emptyIds.unsafePoll() else size
@@ -79,6 +77,7 @@ internal class EntityMapper(private var world: World) {
         val event = entityAddedEvents.obtain()
         event.entity = EntityWrapper(id)
         world.queueInternalEvent(event)
+        world.internalChangeOccurred = true
     }
 
     fun requestRemove(id: Int) {
@@ -86,6 +85,7 @@ internal class EntityMapper(private var world: World) {
         val event = entityRemovedEvents.obtain()
         event.entity = EntityWrapper(id)
         world.queueInternalEvent(event)
+        world.internalChangeOccurred = true
     }
 
     private fun remove(id: Int) {
@@ -111,6 +111,7 @@ internal class EntityMapper(private var world: World) {
         for (subscription in entitiesSubscriptions) {
             subscription.clearEntities()
         }
+        world.internalChangeOccurred = true
     }
 
 }

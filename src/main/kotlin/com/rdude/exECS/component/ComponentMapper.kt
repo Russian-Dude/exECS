@@ -19,7 +19,10 @@ class ComponentMapper<T : Component> private constructor(
         return backingArray[id] != null
     }
 
-    internal fun clear() = backingArray.fill(null)
+    internal fun clear() {
+        backingArray.fill(null)
+        world.internalChangeOccurred = true
+    }
 
     internal fun unsafeSet(id: Int, component: Any?) = set(id, component as T?)
 
@@ -44,6 +47,7 @@ class ComponentMapper<T : Component> private constructor(
             event.component = removedComponent
             event.entity = EntityWrapper(id)
             world.queueInternalEvent(event)
+            world.internalChangeOccurred = true
         }
     }
 
@@ -62,6 +66,7 @@ class ComponentMapper<T : Component> private constructor(
         event.entity = EntityWrapper(id)
         event.replacedComponent = removedComponent
         world.queueInternalEvent(event)
+        world.internalChangeOccurred = true
     }
 
     internal companion object {

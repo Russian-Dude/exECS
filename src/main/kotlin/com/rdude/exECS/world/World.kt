@@ -19,14 +19,18 @@ class World {
     internal val subscriptionsManager = SubscriptionsManager(this)
     internal val componentAddedEventPool = Pool { ComponentAddedEvent() }
     internal val componentRemovedEventPool = Pool { ComponentRemovedEvent() }
+    internal var internalChangeOccurred = false
 
     fun act(delta: Double) {
-        // update systems' entities
-        entityMapper.notifySubscriptionsManager()
-        // fire entity added/removed and component added/removed events
-        eventBus.fireInternalEvents()
-        // actualize data
-        entityMapper.actualize()
+        if (internalChangeOccurred) {
+            internalChangeOccurred = false
+            // update systems' entities
+            entityMapper.notifySubscriptionsManager()
+            // fire entity added/removed and component added/removed events
+            eventBus.fireInternalEvents()
+            // actualize data
+            entityMapper.actualize()
+        }
         // set delta of main events
         actingEvent.delta = delta
         // fire events

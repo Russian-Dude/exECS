@@ -6,6 +6,9 @@ import com.rdude.exECS.utils.Dummies
 
 class ComponentAddedEvent internal constructor() : InternalPoolableEvent() {
 
+    // hardcoded for performance
+    override fun getTypeId(): Int = 1
+
     var entity: EntityWrapper = Dummies.DUMMY_ENTITY_WRAPPER
         internal set
 

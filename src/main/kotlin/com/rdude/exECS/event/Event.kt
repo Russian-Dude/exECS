@@ -1,3 +1,7 @@
 package com.rdude.exECS.event
 
-interface Event
+interface Event {
+
+    fun getTypeId(): Int = EventTypeIDsResolver.idFor(this::class)
+
+}
