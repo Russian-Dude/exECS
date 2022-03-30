@@ -60,7 +60,7 @@ class EventBus(mainEvent: ActingEvent) {
         // fire other queued events
         var event = eventQueue.poll()
         while (event != null) {
-            val iterableArray = eventsToSystems[event.getTypeId()]
+            val iterableArray = eventsToSystems[event.getEventTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
                 system.fireEvent(event)
             }
@@ -75,7 +75,7 @@ class EventBus(mainEvent: ActingEvent) {
     internal fun fireInternalEvents() {
         var event = internalEventQueue.poll()
         while (event != null) {
-            val iterableArray = eventsToSystems[event.getTypeId()]
+            val iterableArray = eventsToSystems[event.getEventTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
                 system.fireEvent(event)
             }

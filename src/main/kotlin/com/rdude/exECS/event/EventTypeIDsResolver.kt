@@ -45,7 +45,7 @@ internal object EventTypeIDsResolver {
 
     private fun initCompanionIdField(kClass: KClass<out Event>, id: Int) {
         kClass.java.fields.singleOrNull {
-            it.name == "execs_generated_id_property_for_${
+            it.name == "execs_generated_event_id_property_for_${
                 kClass.qualifiedName!!.replace(".", "_")}"
         }
             ?.let {

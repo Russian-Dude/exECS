@@ -7,7 +7,7 @@ import com.rdude.exECS.utils.Dummies
 class ComponentRemovedEvent internal constructor() : InternalPoolableEvent() {
 
     // hardcoded for performance
-    override fun getTypeId(): Int = 2
+    override fun getEventTypeId(): Int = 2
 
     var entity: EntityWrapper = Dummies.DUMMY_ENTITY_WRAPPER
         internal set
