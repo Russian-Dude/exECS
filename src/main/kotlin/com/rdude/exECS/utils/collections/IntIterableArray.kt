@@ -2,11 +2,11 @@ package com.rdude.exECS.utils.collections
 
 import kotlin.math.max
 
-internal class IntIterableArray(fixedCapacity: Boolean = false, vararg initialElements: Int) : Iterable<Int> {
+class IntIterableArray(fixedCapacity: Boolean = false, vararg initialElements: Int) : Iterable<Int> {
 
-    internal var backingArray: IntArray
-    internal var size = 0
-    private val iterator = ReusableIterator()
+    var backingArray: IntArray
+    var size = 0
+    val iterator = ReusableIterator()
 
     init {
         val length = if (fixedCapacity) initialElements.size else max(16, initialElements.size * 2)
@@ -60,13 +60,15 @@ internal class IntIterableArray(fixedCapacity: Boolean = false, vararg initialEl
         return iterator
     }
 
-    private inline fun grow() {
+    inline fun grow() {
         backingArray = backingArray.copyOf(max(size, 1) * 2)
     }
 
+    override fun toString(): String {
+        return backingArray.contentToString()
+    }
 
-
-    internal inner class ReusableIterator : Iterator<Int> {
+    inner class ReusableIterator : Iterator<Int> {
 
         var current = 0
 

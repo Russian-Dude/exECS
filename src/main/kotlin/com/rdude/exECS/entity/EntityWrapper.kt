@@ -2,6 +2,7 @@ package com.rdude.exECS.entity
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentTypeIDsResolver
+import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
@@ -26,6 +27,14 @@ value class EntityWrapper internal constructor(val entityID: Int) {
 
     internal fun addComponent(component: Component, world: World) =
         world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
+
+    internal inline fun <reified T> addComponent(): T where T : Component, T : Poolable {
+        TODO ("create this method and add it to compiler plugin")
+    }
+
+    internal inline fun <reified T> addComponent(apply: T.() -> Unit): T where T : Component, T : Poolable {
+        TODO ("create this method and add it to compiler plugin")
+    }
 
     internal fun remove(fromWorld: World) = fromWorld.removeEntity(entityID)
 

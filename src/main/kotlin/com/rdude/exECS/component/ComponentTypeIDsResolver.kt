@@ -30,7 +30,7 @@ object ComponentTypeIDsResolver {
 
     private fun initCompanionIdField(kClass: KClass<out Component>, id: Int) {
         kClass.java.fields.singleOrNull {
-            it.name == "execs_generated_component_id_property_for_${
+            it.name == "execs_generated_component_type_id_property_for_${
                 kClass.qualifiedName!!.replace(".", "_")}"
         }
             ?.let {

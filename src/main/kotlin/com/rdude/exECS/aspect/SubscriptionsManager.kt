@@ -1,7 +1,6 @@
 package com.rdude.exECS.aspect
 
 import com.rdude.exECS.component.ComponentPresenceChange
-import com.rdude.exECS.entity.EntityID
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.LongIterableArray

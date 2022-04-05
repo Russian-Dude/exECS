@@ -7,6 +7,7 @@ import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.inject.SystemDelegate
+import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.reflection.GeneratedFieldsInitializer
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
@@ -43,6 +44,14 @@ abstract class System {
 
     protected fun EntityWrapper.addComponent(component: Component) =
         world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
+
+    internal inline fun <reified T> addComponent(): T where T : Component, T : Poolable {
+        TODO ("create this method and add it to compiler plugin")
+    }
+
+    internal inline fun <reified T> addComponent(apply: T.() -> Unit): T where T : Component, T : Poolable {
+        TODO ("create this method and add it to compiler plugin")
+    }
 
     protected fun EntityWrapper.remove() = world.removeEntity(entityID)
 

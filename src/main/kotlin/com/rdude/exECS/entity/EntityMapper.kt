@@ -19,6 +19,7 @@ internal class EntityMapper(private var world: World) {
     // Stored here to calculate new size only once and only when entity with id that exceeds current size is added
     private var componentMappersSize: Int = 16
 
+    // Stores component mappers for every component type. Array index - component type id
     internal val componentMappers: Array<ComponentMapper<*>> = Array(ComponentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
 
     // Current amount of entities
@@ -95,6 +96,13 @@ internal class EntityMapper(private var world: World) {
     }
 
     fun actualize() {
+        // return to pools poolable components
+        componentMappers.forEach { mapper ->
+            mapper.componentsToReturnToPool.forEach { poolable ->
+                poolable.reset()
+                poolable.returnToPool()
+            }
+        }
         // remove requests
         for (removeRequest in removeRequests) {
             remove(removeRequest)

@@ -80,6 +80,7 @@ class EventBus(mainEvent: ActingEvent) {
                 system.fireEvent(event)
             }
             if (event is Poolable) {
+                event.reset()
                 event.returnToPool()
             }
             event = internalEventQueue.poll()
