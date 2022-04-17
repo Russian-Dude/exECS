@@ -1,8 +1,8 @@
 package com.rdude.exECS.entity
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.pool.Poolable
+import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
@@ -16,24 +16,29 @@ import kotlin.reflect.KClass
 value class EntityWrapper internal constructor(val entityID: Int) {
 
     internal fun <T : Component> getComponent(componentClass: KClass<T>, world: World) : T? =
-        world.entityMapper.componentMappers[ComponentTypeIDsResolver.idFor(componentClass)][entityID] as T?
+        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] as T?
 
     internal fun removeComponent(componentClass: KClass<out Component>, world: World) {
-        world.entityMapper.componentMappers[ComponentTypeIDsResolver.idFor(componentClass)][entityID] = null
+        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] = null
     }
 
     internal fun hasComponent(componentClass: KClass<out Component>, world: World): Boolean =
-        world.entityMapper.componentMappers[ComponentTypeIDsResolver.idFor(componentClass)].hasComponent(entityID)
+        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)].hasComponent(entityID)
 
     internal fun addComponent(component: Component, world: World) =
         world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
 
-    internal inline fun <reified T> addComponent(): T where T : Component, T : Poolable {
-        TODO ("create this method and add it to compiler plugin")
+    internal inline fun <reified T> addComponent(world: World): T where T : Component, T : Poolable {
+        val component = ExEcs.defaultPools[T::class].obtain() as T
+        world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
+        return component
     }
 
-    internal inline fun <reified T> addComponent(apply: T.() -> Unit): T where T : Component, T : Poolable {
-        TODO ("create this method and add it to compiler plugin")
+    internal inline fun <reified T> addComponent(world: World, apply: T.() -> Unit): T where T : Component, T : Poolable {
+        val component = ExEcs.defaultPools[T::class].obtain() as T
+        apply.invoke(component)
+        world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
+        return component
     }
 
     internal fun remove(fromWorld: World) = fromWorld.removeEntity(entityID)

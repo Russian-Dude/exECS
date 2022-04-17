@@ -3,12 +3,14 @@ package com.rdude.exECS.utils.reflection
 import org.reflections.Reflections
 import kotlin.reflect.KClass
 
-internal object ReflectionUtils {
+internal class ReflectionUtils {
 
-    internal val eventSystemGenericQualifier = EventSystemGenericQualifier()
+    private val notAbstractSubClassesCache = mutableMapOf<KClass<*>, Set<KClass<*>>>()
 
     internal fun <T : Any> getNotAbstractSubClassesFromAllPackages(kClass: KClass<T>) : Set<KClass<out T>> {
-        return Package.getPackages()
+        val cached = notAbstractSubClassesCache[kClass]
+        if (cached != null) return cached as Set<KClass<out T>>
+        val result = Package.getPackages()
             .asSequence()
             .map { it.name.substringBefore('.') }
             .distinct()
@@ -17,6 +19,8 @@ internal object ReflectionUtils {
             .map { it.kotlin }
             .filterNot { it.isAbstract }
             .toSet()
+        notAbstractSubClassesCache[kClass] = result
+        return result
     }
 
 }

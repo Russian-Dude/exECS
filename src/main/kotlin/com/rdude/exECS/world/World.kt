@@ -7,10 +7,17 @@ import com.rdude.exECS.component.ComponentPresenceChange
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.event.*
 import com.rdude.exECS.pool.Pool
+import com.rdude.exECS.pool.Poolable
+import com.rdude.exECS.pool.fromPool
 import com.rdude.exECS.system.*
+import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IterableArray
 
 class World {
+
+    init {
+        ExEcs.initializeIfNeeded()
+    }
 
     internal val systems = IterableArray<System>()
     internal val entityMapper = EntityMapper(this)
@@ -22,7 +29,7 @@ class World {
     internal var internalChangeOccurred = false
 
     fun act(delta: Double) {
-        if (internalChangeOccurred) {
+        while (internalChangeOccurred) {
             internalChangeOccurred = false
             // update systems' entities
             entityMapper.notifySubscriptionsManager()
@@ -38,6 +45,11 @@ class World {
     }
 
     fun queueEvent(event: Event) = eventBus.queueEvent(event)
+
+    inline fun <reified T> queueEvent() where T : Event, T : Poolable = queueEvent(fromPool<T>())
+
+    inline fun <reified T> queueEvent(apply: T.() -> Unit) where T : Event, T : Poolable =
+        queueEvent(fromPool<T>().apply { apply.invoke(this) })
 
     internal fun queueInternalEvent(event: InternalEvent) = eventBus.queueInternalEvent(event)
 
@@ -55,6 +67,7 @@ class World {
 
     fun addSystem(system: System) {
         checkSystemCorrectness(system)
+        system.registered = true
         systems.add(system)
         system.setWorld(this)
 
@@ -84,16 +97,20 @@ class World {
     }
 
     private fun checkSystemCorrectness(system: System) {
+        if (system.registered) {
+            throw IllegalStateException("System $system is already registered in another world")
+        }
         if (
             system is EventSystem<*>
             && system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()
             && !(system is SimpleActingSystem || system is SimpleEventSystem<*>)
         ) {
             val usedName = if (system is ActingSystem) ActingSystem::class.simpleName else EventSystem::class.simpleName
-            val needName = if (system is ActingSystem) SimpleActingSystem::class.simpleName else SimpleEventSystem::class.simpleName
+            val needName =
+                if (system is ActingSystem) SimpleActingSystem::class.simpleName else SimpleEventSystem::class.simpleName
             throw IllegalStateException(
-                    "System ${system::class} has no components in aspect. To use $usedName without components in aspect, use $needName instead of $usedName"
-                )
+                "System ${system::class} has no components in aspect. To use $usedName without components in aspect, use $needName instead of $usedName"
+            )
         }
     }
 

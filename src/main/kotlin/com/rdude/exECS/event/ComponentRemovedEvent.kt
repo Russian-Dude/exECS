@@ -2,6 +2,7 @@ package com.rdude.exECS.event
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.Dummies
 
 class ComponentRemovedEvent internal constructor() : InternalPoolableEvent() {
@@ -15,4 +16,9 @@ class ComponentRemovedEvent internal constructor() : InternalPoolableEvent() {
     lateinit var component: Component
         internal set
 
+    override fun reset() {
+        if (component is Poolable && component.insideEntities == 0) {
+            (component as Poolable).returnToPool()
+        }
+    }
 }

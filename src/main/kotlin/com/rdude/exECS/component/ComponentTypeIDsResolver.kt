@@ -1,9 +1,9 @@
 package com.rdude.exECS.component
 
-import com.rdude.exECS.utils.reflection.ReflectionUtils
+import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
 
-object ComponentTypeIDsResolver {
+class ComponentTypeIDsResolver {
 
     internal val size: Int
     private val fqNameToId: MutableMap<String, Int> = HashMap()
@@ -11,7 +11,7 @@ object ComponentTypeIDsResolver {
     private val idToKClass: MutableMap<Int, KClass<out Component>> = HashMap()
 
     init {
-        val allComponentClasses = ReflectionUtils.getNotAbstractSubClassesFromAllPackages(Component::class)
+        val allComponentClasses = ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(Component::class)
         for ((index, kClass) in allComponentClasses.toList().withIndex()) {
             fqNameToId[kClass.qualifiedName!!] = index
             classToIdMap[kClass] = index
@@ -26,7 +26,7 @@ object ComponentTypeIDsResolver {
 
     fun idFor(fqName: String): Int = fqNameToId[fqName] ?: throw IllegalStateException("Component $fqName is not registered")
 
-    fun typeById(id: Int): KClass<out Component> = idToKClass[id] ?: throw IllegalStateException("Component with id $id is not registered")
+    fun typeById(id: Int): KClass<out Component> = idToKClass[id] ?: throw IllegalStateException("Component with type id $id is not registered")
 
     private fun initCompanionIdField(kClass: KClass<out Component>, id: Int) {
         kClass.java.fields.singleOrNull {

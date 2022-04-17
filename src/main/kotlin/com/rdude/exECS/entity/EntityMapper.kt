@@ -3,10 +3,10 @@ package com.rdude.exECS.entity
 import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentMapper
-import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.event.EntityAddedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.pool.Pool
+import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntArrayStack
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
@@ -20,7 +20,7 @@ internal class EntityMapper(private var world: World) {
     private var componentMappersSize: Int = 16
 
     // Stores component mappers for every component type. Array index - component type id
-    internal val componentMappers: Array<ComponentMapper<*>> = Array(ComponentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
+    internal val componentMappers: Array<ComponentMapper<*>> = Array(ExEcs.componentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
 
     // Current amount of entities
     private var size: Int = 1
@@ -96,13 +96,6 @@ internal class EntityMapper(private var world: World) {
     }
 
     fun actualize() {
-        // return to pools poolable components
-        componentMappers.forEach { mapper ->
-            mapper.componentsToReturnToPool.forEach { poolable ->
-                poolable.reset()
-                poolable.returnToPool()
-            }
-        }
         // remove requests
         for (removeRequest in removeRequests) {
             remove(removeRequest)

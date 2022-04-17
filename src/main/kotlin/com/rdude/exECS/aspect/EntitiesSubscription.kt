@@ -1,8 +1,8 @@
 package com.rdude.exECS.aspect
 
-import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.utils.Dummies
+import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.UnsafeBitSet
 
@@ -18,7 +18,7 @@ internal class EntitiesSubscription(aspect: Aspect) {
     internal var hasEntities = UnsafeBitSet()
 
     // IDs of component types that are relevant for this subscription
-    private var componentTypeIDs = UnsafeBitSet(ComponentTypeIDsResolver.size)
+    private var componentTypeIDs = UnsafeBitSet(ExEcs.componentTypeIDsResolver.size)
 
     // If presence of entities was not changed there is no need to remove unused entities
     private var hasRemoveRequests = false
@@ -34,15 +34,15 @@ internal class EntitiesSubscription(aspect: Aspect) {
             hasEntities[Dummies.DUMMY_ENTITY_ID] = true
         }
 
-        val anyOfTypeIds = aspect.anyOf.map { ComponentTypeIDsResolver.idFor(it) }.toIntArray()
+        val anyOfTypeIds = aspect.anyOf.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
         anyOf = IntIterableArray(true, *anyOfTypeIds)
         anyOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        val allOfTypeIds = aspect.allOf.map { ComponentTypeIDsResolver.idFor(it) }.toIntArray()
+        val allOfTypeIds = aspect.allOf.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
         allOf = IntIterableArray(true, *allOfTypeIds)
         allOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        val excludeTypeIds = aspect.exclude.map { ComponentTypeIDsResolver.idFor(it) }.toIntArray()
+        val excludeTypeIds = aspect.exclude.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
         exclude = IntIterableArray(true, *excludeTypeIds)
         excludeTypeIds.forEach { componentTypeIDs[it] = true }
     }

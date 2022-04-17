@@ -1,10 +1,11 @@
 package com.rdude.exECS.event
 
+import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.reflection.ReflectionUtils
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
-internal object EventTypeIDsResolver {
+internal class EventTypeIDsResolver {
 
     private val classToIdMap: Map<KClass<out Event>, Int>
     internal val size: Int
@@ -12,7 +13,7 @@ internal object EventTypeIDsResolver {
     init {
         val classToIdMap: MutableMap<KClass<out Event>, Int> = HashMap()
 
-        val allNotInternalEventClasses = ReflectionUtils.getNotAbstractSubClassesFromAllPackages(Event::class)
+        val allNotInternalEventClasses = ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(Event::class)
             .filterNot { it.isSubclassOf(InternalEvent::class) }
         val internalEventsSize = resolveInternalEventsIds(classToIdMap)
 
