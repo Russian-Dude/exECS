@@ -13,7 +13,7 @@ class EventBus(mainEvent: ActingEvent) {
     private val actingEvent = mainEvent
 
     // Main event queue
-    private val eventQueue = ArrayQueue<Event>()
+    internal val eventQueue = ArrayQueue<Event>()
 
     // Component added/removed and entity/added removed events queue
     private val internalEventQueue = ArrayQueue<InternalEvent>()
@@ -40,10 +40,10 @@ class EventBus(mainEvent: ActingEvent) {
     fun removeSystem(system: EventSystem<*>) {
         for (eventClass in ExEcs.eventSystemGenericQualifier.getEventClassesForSystem(system)) {
             if (eventClass == ActingEvent::class) {
-                actingEventSubscribers.remove(system as EventSystem<ActingEvent>)
+                actingEventSubscribers.removeContainingOrder(system as EventSystem<ActingEvent>)
             }
             else {
-                eventsToSystems[ExEcs.eventTypeIDsResolver.idFor(eventClass)].remove(system)
+                eventsToSystems[ExEcs.eventTypeIDsResolver.idFor(eventClass)].removeContainingOrder(system)
             }
         }
     }

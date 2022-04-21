@@ -50,6 +50,8 @@ abstract class ActingSystem(override val aspect: Aspect = Aspect()) : EventSyste
 
     constructor(only: KClass<out Component>): this(Aspect(only = only))
 
+    constructor() : this(listOf())
+
     final override fun eventFired(entity: EntityWrapper, event: ActingEvent) {
         act(entity, event.delta)
     }

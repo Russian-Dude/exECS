@@ -5,10 +5,16 @@ import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentPresenceChange
 import com.rdude.exECS.entity.EntityMapper
-import com.rdude.exECS.event.*
-import com.rdude.exECS.pool.Pool
+import com.rdude.exECS.event.ActingEvent
+import com.rdude.exECS.event.Event
+import com.rdude.exECS.event.EventBus
+import com.rdude.exECS.event.InternalEvent
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
+import com.rdude.exECS.serialization.SimpleWorldSnapshot
+import com.rdude.exECS.serialization.SimpleWorldSnapshotGenerator
+import com.rdude.exECS.serialization.WorldSnapshot
+import com.rdude.exECS.serialization.WorldSnapshotGenerator
 import com.rdude.exECS.system.*
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IterableArray
@@ -21,14 +27,17 @@ class World {
 
     internal val systems = IterableArray<System>()
     internal val entityMapper = EntityMapper(this)
-    private val actingEvent = ActingEvent(0.0)
-    private val eventBus = EventBus(actingEvent)
+    internal val actingEvent = ActingEvent(0.0)
+    internal val eventBus = EventBus(actingEvent)
     internal val subscriptionsManager = SubscriptionsManager(this)
-    internal val componentAddedEventPool = Pool { ComponentAddedEvent() }
-    internal val componentRemovedEventPool = Pool { ComponentRemovedEvent() }
     internal var internalChangeOccurred = false
+    internal val poolablesToReturn = IterableArray<Poolable>()
+
+    var isCurrentlyActing = false
+        private set
 
     fun act(delta: Double) {
+        isCurrentlyActing = true
         while (internalChangeOccurred) {
             internalChangeOccurred = false
             // update systems' entities
@@ -37,11 +46,14 @@ class World {
             eventBus.fireInternalEvents()
             // actualize data
             entityMapper.actualize()
+            // remove poolables to pool
+            removePoolablesToPoolIfNeeded()
         }
         // set delta of main events
         actingEvent.delta = delta
         // fire events
         eventBus.fireEvents()
+        isCurrentlyActing = false
     }
 
     fun queueEvent(event: Event) = eventBus.queueEvent(event)
@@ -92,9 +104,31 @@ class World {
         }
     }
 
+    fun removeSystem(system: System) {
+        if (system.world != this) return
+        systems.removeContainingOrder(system)
+        system.registered = false
+        if (system is ActingSystem) {
+            eventBus.removeSystem(system)
+        }
+    }
+
     fun clearEntities() {
         entityMapper.clear()
     }
+
+    /** Rearrange entity IDs to eliminate potential gaps that could be caused by unused IDs.*/
+    fun rearrange() {
+        if (isCurrentlyActing) throw IllegalStateException("Can not rearrange world while acting")
+        entityMapper.rearrange()
+    }
+
+    fun <T : WorldSnapshot> snapshot(generator: WorldSnapshotGenerator<T>): T  {
+        rearrange()
+        return generator.generate(this)
+    }
+
+    fun snapshot(): SimpleWorldSnapshot = SimpleWorldSnapshotGenerator.generate(this)
 
     private fun checkSystemCorrectness(system: System) {
         if (system.registered) {
@@ -112,6 +146,25 @@ class World {
                 "System ${system::class} has no components in aspect. To use $usedName without components in aspect, use $needName instead of $usedName"
             )
         }
+    }
+
+    private fun removePoolablesToPoolIfNeeded() {
+        var returned = false
+        poolablesToReturn.iterate(
+            onEach = {
+                if (it is Component && it.insideEntities == 0) {
+                    it.returnToPool()
+                    returned = true
+                }
+                else returned = false
+            },
+            removeIf = { returned }
+        )
+    }
+
+    companion object {
+        operator fun invoke(simpleWorldSnapshot: SimpleWorldSnapshot) =
+            SimpleWorldSnapshotGenerator.snapshotToWorld(simpleWorldSnapshot)
     }
 
 }

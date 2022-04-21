@@ -6,7 +6,7 @@ package com.rdude.exECS.utils.collections
  */
 internal class UnsafeBitSet(size: Int = 1) {
 
-    private var data: LongArray = LongArray(size / 64 + 1) { 0 }
+    internal var data: LongArray = LongArray(size / 64 + 1) { 0 }
 
     internal operator fun get(index: Int) : Boolean  {
         val word = index ushr 6
@@ -42,5 +42,24 @@ internal class UnsafeBitSet(size: Int = 1) {
     }
 
     internal fun clear() = data.fill(0L)
+
+
+    internal inline fun getTrueValues(): List<Int> {
+        val result = mutableListOf<Int>()
+        var index = 0
+        for (word in data) {
+            if (word == 0L) {
+                index += 64
+                continue
+            }
+            for (i in 0..63) {
+                if ((word and (1L shl i)) != 0L) {
+                    result.add(index)
+                }
+                index++
+            }
+        }
+        return result
+    }
 
 }

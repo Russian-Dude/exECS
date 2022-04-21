@@ -40,10 +40,23 @@ private constructor(array: Array<T?>, initialSize: Int) : Iterable<T> {
         }
     }
 
-    inline fun removeIteratingElement() {
-        backingArray[iterator.current] = backingArray[--size]
-        backingArray[size] = null
-        iterator.current--
+    inline fun removeContainingOrder(element: T) {
+        var removed = false
+        for (i in 0 until size) {
+            val current = backingArray[i]
+            if (current == element) {
+                removed = true
+            }
+            if (removed) {
+                if (i + 1 < size) {
+                    backingArray[i] = backingArray[i + 1]
+                }
+                else {
+                    backingArray[i] = null
+                }
+            }
+        }
+        if (removed) size--
     }
 
     inline fun clear() {
@@ -55,13 +68,22 @@ private constructor(array: Array<T?>, initialSize: Int) : Iterable<T> {
 
     inline fun isNotEmpty() = size > 0
 
-    override fun iterator(): Iterator<T> {
+    override fun iterator(): MutableIterator<T> {
         iterator.current = 0
         return iterator
     }
 
     inline fun grow() {
         backingArray = backingArray.copyOf(max(size, 1) * 2)
+    }
+
+    inline fun iterate(onEach: (T) -> Unit = {}, removeIf: (T) -> Boolean = {false}) {
+        for (t in this) {
+            onEach.invoke(t)
+            if (removeIf.invoke(t)) {
+                iterator.remove()
+            }
+        }
     }
 
     infix fun equalsWithAnyOrder(other: IterableArray<T>): Boolean {
@@ -82,14 +104,26 @@ private constructor(array: Array<T?>, initialSize: Int) : Iterable<T> {
 
     infix fun notEqualsWithAnyOrder(other: IterableArray<T>) = !equalsWithAnyOrder(other)
 
+    fun snapshot() = IterableArraySnapshot(backingArray, size)
 
-    internal inner class ReusableIterator : Iterator<T> {
+    override fun toString() = backingArray.contentToString()
+
+    /** Used for serialization. */
+    class IterableArraySnapshot<T>(val backingArray: Array<T?>, val size: Int)
+
+    /** Reusable iterator to reduce garbage collector calls */
+    internal inner class ReusableIterator : MutableIterator<T> {
 
         var current = 0
 
         override fun hasNext(): Boolean = current < size
 
         override fun next(): T = backingArray[current++] as T
+
+        override fun remove() {
+            backingArray[--iterator.current] = backingArray[--size]
+            backingArray[size] = null
+        }
     }
 
     companion object {
@@ -101,6 +135,9 @@ private constructor(array: Array<T?>, initialSize: Int) : Iterable<T> {
             }
             return IterableArray(array, initialElements.size)
         }
+
+        operator fun <T> invoke(snapshot: IterableArraySnapshot<T>): IterableArray<T> =
+            IterableArray(snapshot.backingArray, snapshot.size)
     }
 
 }

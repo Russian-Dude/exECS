@@ -61,4 +61,13 @@ internal class SubscriptionsManager(val world: World) {
         }
     }
 
+    internal fun moveEntity(fromId: Int, toId: Int) {
+        for (subscription in subscriptions) {
+            if (subscription.hasEntities[fromId]) {
+                subscription.instantlyRemoveEntity(fromId)
+                subscription.addEntity(toId)
+            }
+        }
+    }
+
 }

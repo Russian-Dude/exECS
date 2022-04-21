@@ -1,12 +1,18 @@
 package com.rdude.exECS.component
 
 import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.event.ComponentAddedEvent
+import com.rdude.exECS.event.ComponentRemovedEvent
+import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.ExEcs
+import com.rdude.exECS.utils.collections.BitSet
+import com.rdude.exECS.utils.collections.ResizableArray
+import com.rdude.exECS.utils.collections.UnsafeBitSet
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
 class ComponentMapper<T : Component> private constructor(
-    private var backingArray: Array<T?>, private val world: World, private val componentTypeId: Int
+    internal var backingArray: Array<T?>, private val world: World, internal val componentTypeId: Int
 ) {
 
     operator fun get(id: Int) = backingArray[id]
@@ -20,23 +26,15 @@ class ComponentMapper<T : Component> private constructor(
         return backingArray[id] != null
     }
 
-    internal fun clear() {
-        backingArray.fill(null)
-        world.internalChangeOccurred = true
-    }
-
-    internal fun unsafeSet(id: Int, component: Any?) = set(id, component as T?)
-
-    internal fun grow(newSize: Int) {
-        backingArray = backingArray.copyOf(newSize)
-    }
-
     fun removeComponent(id: Int) {
         val removedComponent = backingArray[id]
         backingArray[id] = null
         if (removedComponent != null) {
             // update component entity amount
             removedComponent.insideEntities--
+            if (removedComponent.insideEntities == 0 && removedComponent is Poolable) {
+                world.poolablesToReturn.add(removedComponent)
+            }
             // notify subscribersManager
             world.componentPresenceChange(
                 ComponentPresenceChange(
@@ -46,7 +44,7 @@ class ComponentMapper<T : Component> private constructor(
                 )
             )
             // queue event
-            val event = world.componentRemovedEventPool.obtain()
+            val event = ComponentRemovedEvent.pool.obtain()
             event.component = removedComponent
             event.entity = EntityWrapper(id)
             world.queueInternalEvent(event)
@@ -58,6 +56,9 @@ class ComponentMapper<T : Component> private constructor(
         val removedComponent = backingArray[id]
         if (removedComponent != null && removedComponent != component) {
             removedComponent.insideEntities--
+            if (removedComponent.insideEntities == 0 && removedComponent is Poolable) {
+                world.poolablesToReturn.add(removedComponent)
+            }
         }
         // add component to the actual entity
         backingArray[id] = component
@@ -72,7 +73,7 @@ class ComponentMapper<T : Component> private constructor(
             )
         )
         // queue events
-        val event = world.componentAddedEventPool.obtain()
+        val event = ComponentAddedEvent.pool.obtain()
         event.component = component
         event.entity = EntityWrapper(id)
         event.replacedComponent = removedComponent
@@ -86,6 +87,41 @@ class ComponentMapper<T : Component> private constructor(
         addComponent(id, component)
         return component
     }
+
+    internal fun removeComponentSilently(id: Int) {
+        val removedComponent = backingArray[id]
+        backingArray[id] = null
+        if (removedComponent != null) {
+            // update component entity amount
+            removedComponent.insideEntities--
+            if (removedComponent.insideEntities == 0 && removedComponent is Poolable) {
+                world.poolablesToReturn.add(removedComponent)
+            }
+        }
+    }
+
+    internal fun replaceId(fromId: Int, toId: Int) {
+        backingArray[toId] = backingArray[fromId]
+        backingArray[fromId] = null
+    }
+
+    internal fun clear() {
+        for (i in backingArray.indices) {
+            removeComponentSilently(i)
+        }
+        world.internalChangeOccurred = true
+    }
+
+    internal fun unsafeSet(id: Int, component: Any?) = set(id, component as T?)
+
+    internal fun grow(newSize: Int) {
+        backingArray = backingArray.copyOf(newSize)
+    }
+
+    internal fun setBackingArrayUnsafe(newArray: Array<*>) {
+        backingArray = newArray as Array<T?>
+    }
+
 
     internal companion object {
         operator fun <T : Component> invoke(type: KClass<T>, world: World, initialSize: Int, componentTypeId: Int) =

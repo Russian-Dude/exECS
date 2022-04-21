@@ -31,10 +31,25 @@ internal class ArrayQueue<T> private constructor(array: Array<T?>){
         return result
     }
 
+    fun asArray(): Array<T?> {
+        val result = backingArray.copyOf()
+        for (i in 0..size - 1) {
+            result[i] = backingArray[(head + i) % backingArray.size]
+        }
+        return result
+    }
+
+    internal fun setBackingArrayUnsafe(newArray: Array<*>, size: Int = newArray.count { it != null }) {
+        this.backingArray = newArray as Array<T?>
+        this.head = 0
+        this.tail = 0
+        this.size = size
+    }
+
     private fun rearrangeAndGrow() {
         val newBackingArray = backingArray.copyOf(size * 2)
         for (i in 0..size - 1) {
-            newBackingArray[i] = backingArray[(head + 1) % backingArray.size]
+            newBackingArray[i] = backingArray[(head + i) % backingArray.size]
         }
         backingArray = newBackingArray
         head = 0

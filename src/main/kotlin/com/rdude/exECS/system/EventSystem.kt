@@ -51,6 +51,8 @@ abstract class EventSystem<T : Event> (override val aspect: Aspect = Aspect()): 
 
     constructor(only: KClass<out Component>): this(Aspect(only = only))
 
+    constructor() : this(listOf())
+
 
     abstract fun eventFired(entity: EntityWrapper, event: T)
 

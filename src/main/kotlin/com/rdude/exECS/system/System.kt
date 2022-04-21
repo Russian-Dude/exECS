@@ -18,13 +18,16 @@ abstract class System {
 
     abstract val aspect: Aspect
 
+    @Transient
     lateinit var world: World
         private set
 
     var enabled = true
 
+    @Transient
     internal var registered = false
 
+    @Transient
     internal lateinit var entitiesSubscription: EntitiesSubscription
 
     fun createEntity(vararg components: Component) = world.createEntity(*components)

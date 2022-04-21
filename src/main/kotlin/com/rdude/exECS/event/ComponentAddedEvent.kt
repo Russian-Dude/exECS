@@ -2,6 +2,7 @@ package com.rdude.exECS.event
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.Dummies
 
@@ -21,9 +22,7 @@ class ComponentAddedEvent internal constructor() : InternalPoolableEvent() {
 
     val replaced get() = replacedComponent != null
 
-    override fun reset() {
-        if (replacedComponent != null && replacedComponent is Poolable && replacedComponent!!.insideEntities == 0) {
-            (replacedComponent as Poolable).returnToPool()
-        }
+    internal companion object {
+        val pool = Pool { ComponentAddedEvent() }
     }
 }
