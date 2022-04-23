@@ -42,7 +42,10 @@ internal class EntityMapper(private var world: World) {
 
     // Indexes of the backing array cells that will be cleared after actualize() call
     // This array will be cleared only after all remove events fired
-    private var removeRequests = IntArrayStackSet()
+    private val removeRequests = IntArrayStackSet()
+
+    // backing array indexes that subscribers don't know about removing yet
+    private val freshRemovedEntities = IntArrayStackSet()
 
     // Indexes of the backing array containing entities not yet known to subscribers
     private var freshAddedEntities = IntIterableArray()
@@ -59,9 +62,12 @@ internal class EntityMapper(private var world: World) {
     internal fun notifySubscriptionsManager() {
         val subscriptionsManager = world.subscriptionsManager
         subscriptionsManager.handleEntitiesAdded(freshAddedEntities)
-        subscriptionsManager.handleEntitiesRemoved(removeRequests)
+        subscriptionsManager.handleEntitiesRemoved(freshRemovedEntities)
         subscriptionsManager.handleComponentPresenceChanges()
         subscriptionsManager.removeUnusedEntities()
+        freshRemovedEntities.clear()
+        freshAddedEntities.clear()
+        world.subscriptionsNeedToBeUpdated = false
     }
 
     // should only be called between world act calls
@@ -128,6 +134,7 @@ internal class EntityMapper(private var world: World) {
     fun requestRemove(id: Int) {
         val requestAdded = removeRequests.add(id)
         if (!requestAdded) return
+        freshRemovedEntities.add(id)
         val event = EntityRemovedEvent.pool.obtain()
         event.entity = EntityWrapper(id)
         event.entityAsSingleton = if (id >= reservedForSingletons) null else singletons[id]
@@ -155,14 +162,13 @@ internal class EntityMapper(private var world: World) {
             remove(removeRequest)
         }
         removeRequests.clear()
-        // fresh added entities
-        freshAddedEntities.clear()
     }
 
     fun clear() {
         componentMappers.forEach { it.clear() }
         removeRequests.clear()
         freshAddedEntities.clear()
+        freshRemovedEntities.clear()
         for (subscription in entitiesSubscriptions) {
             subscription.clearEntities()
         }

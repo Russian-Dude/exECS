@@ -28,15 +28,29 @@ class World {
     }
 
     internal val systems = IterableArray<System>()
+
     internal val entityMapper = EntityMapper(this)
+
     internal val actingEvent = ActingEvent(0.0)
-    internal val eventBus = EventBus(actingEvent)
+
+    internal val eventBus = EventBus(actingEvent, this)
+
     internal val subscriptionsManager = SubscriptionsManager(this)
+
     internal var internalChangeOccurred = false
+        set(value) {
+            field = value
+            if (value) subscriptionsNeedToBeUpdated = true
+        }
+
+    internal var subscriptionsNeedToBeUpdated = false
+
     internal val poolablesToReturn = IterableArray<Poolable>()
 
     var isCurrentlyActing = false
         private set
+
+
 
     fun act(delta: Double) {
         isCurrentlyActing = true
@@ -74,7 +88,7 @@ class World {
         if (singletonEntity.isWorldInitialized && singletonEntity.world != this) {
             throw IllegalStateException("Singleton entity instance can only be registered in one World instance")
         }
-
+        entityMapper.addSingletonEntity(singletonEntity)
     }
 
     fun addSystem(system: System) {
@@ -110,6 +124,7 @@ class World {
     }
 
     fun removeSystem(system: System) {
+        if (isCurrentlyActing) throw IllegalStateException("System can not be removed during act call")
         if (system.world != this) return
         systems.removeContainingOrder(system)
         system.registered = false
@@ -181,7 +196,7 @@ class World {
         )
     }
 
-    private fun internalChanges() {
+    internal fun internalChanges() {
         while (internalChangeOccurred) {
             internalChangeOccurred = false
             // update systems' entities

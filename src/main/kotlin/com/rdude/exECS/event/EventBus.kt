@@ -5,8 +5,9 @@ import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.ArrayQueue
 import com.rdude.exECS.utils.collections.IterableArray
+import com.rdude.exECS.world.World
 
-class EventBus(mainEvent: ActingEvent) {
+class EventBus(mainEvent: ActingEvent, private val world: World) {
 
     // Main event
     private val actingEvent = mainEvent
@@ -55,6 +56,7 @@ class EventBus(mainEvent: ActingEvent) {
     internal fun fireEvents() {
         // fire main event
         for (system in actingEventSubscribers) {
+            if (world.subscriptionsNeedToBeUpdated) world.entityMapper.notifySubscriptionsManager()
             system.fireEvent(actingEvent)
         }
         // fire other queued events
@@ -62,6 +64,7 @@ class EventBus(mainEvent: ActingEvent) {
         while (event != null) {
             val iterableArray = eventsToSystems[event.getEventTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
+                if (world.subscriptionsNeedToBeUpdated) world.entityMapper.notifySubscriptionsManager()
                 system.fireEvent(event)
             }
             if (event is Poolable) {
@@ -77,6 +80,7 @@ class EventBus(mainEvent: ActingEvent) {
         while (event != null) {
             val iterableArray = eventsToSystems[event.getEventTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
+                if (world.subscriptionsNeedToBeUpdated) world.entityMapper.notifySubscriptionsManager()
                 if (system.enabled) system.fireEvent(event)
             }
             if (event is Poolable) {

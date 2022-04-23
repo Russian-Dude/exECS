@@ -5,9 +5,6 @@ import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.ExEcs
-import com.rdude.exECS.utils.collections.BitSet
-import com.rdude.exECS.utils.collections.ResizableArray
-import com.rdude.exECS.utils.collections.UnsafeBitSet
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 

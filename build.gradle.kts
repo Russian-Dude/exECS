@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.russian-dude"
-version = "1.4.1"
+version = "1.4.2"
 
 repositories {
     mavenCentral()
@@ -37,7 +37,7 @@ publishing {
         create<MavenPublication>("maven") {
             groupId = "com.russian-dude"
             artifactId = "execs"
-            version = "1.4.1"
+            version = "1.4.2"
             from(components["java"])
         }
     }
