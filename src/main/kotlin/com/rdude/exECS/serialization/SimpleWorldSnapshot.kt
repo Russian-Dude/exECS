@@ -3,14 +3,20 @@ package com.rdude.exECS.serialization
 import com.rdude.exECS.event.Event
 
 
-class SimpleWorldSnapshot : WorldSnapshot() {
+data class SimpleWorldSnapshot(
 
-    var entitiesAmount: Int = 0
+    val simpleEntitiesAmount: Int,
 
-    lateinit var systems: List<SystemsSnapshot>
+    val systems: List<SystemsSnapshot>,
 
-    lateinit var componentMappers: List<ComponentMapperSnapshot<*>>
+    val componentMappers: List<ComponentMapperSnapshot<*>>,
 
-    lateinit var events: List<Event>
+    val singletonEntities: List<SingletonSnapshot>,
+
+    val events: List<Event>
+
+) : WorldSnapshot() {
+
+    fun toWorld() = SimpleWorldSnapshotGenerator.snapshotToWorld(this)
 
 }

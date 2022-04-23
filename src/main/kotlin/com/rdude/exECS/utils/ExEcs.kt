@@ -1,6 +1,7 @@
 package com.rdude.exECS.utils
 
 import com.rdude.exECS.component.ComponentTypeIDsResolver
+import com.rdude.exECS.entity.SingletonEntityIDsResolver
 import com.rdude.exECS.event.EventTypeIDsResolver
 import com.rdude.exECS.pool.DefaultPools
 import com.rdude.exECS.pool.Pool
@@ -22,6 +23,8 @@ internal object ExEcs {
 
     lateinit var eventTypeIDsResolver: EventTypeIDsResolver private set
 
+    lateinit var singletonEntityIDsResolver: SingletonEntityIDsResolver private set
+
     lateinit var generatedFieldsInitializer: GeneratedFieldsInitializer private set
 
     lateinit var eventSystemGenericQualifier: EventSystemGenericQualifier private set
@@ -32,6 +35,7 @@ internal object ExEcs {
         defaultPools = DefaultPools()
         componentTypeIDsResolver = ComponentTypeIDsResolver()
         eventTypeIDsResolver = EventTypeIDsResolver()
+        singletonEntityIDsResolver = SingletonEntityIDsResolver()
         generatedFieldsInitializer = GeneratedFieldsInitializer()
         eventSystemGenericQualifier = EventSystemGenericQualifier()
         registerGeneratedPoolsAsDefaults()

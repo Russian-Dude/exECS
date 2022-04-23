@@ -26,7 +26,7 @@ internal class SubscriptionsManager(val world: World) {
         }
     }
 
-    internal fun handleEntitiesRemoved(entities: IntIterableArray) {
+    internal fun handleEntitiesRemoved(entities: Iterable<Int>) {
         for (entityID in entities) {
             for (subscription in subscriptions) {
                 subscription.setHasNotEntity(entityID)

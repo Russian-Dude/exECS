@@ -3,7 +3,7 @@ package com.rdude.exECS.serialization
 import com.rdude.exECS.component.Component
 import kotlin.reflect.KClass
 
-class ComponentMapperSnapshot<T : Component>(
+data class ComponentMapperSnapshot<T : Component>(
     val presence: IntArray,
     val data: Array<T>,
     val nullStart: Boolean,
@@ -28,13 +28,13 @@ class ComponentMapperSnapshot<T : Component>(
         }
     }
 
-    fun toArray(): Array<T?> {
+    fun toArray(emptyStartAmount: Int): Array<T?> {
 
-        val result = java.lang.reflect.Array.newInstance(type.java, presence.sum()) as Array<T?>
+        val result = java.lang.reflect.Array.newInstance(type.java, presence.sum() + emptyStartAmount) as Array<T?>
 
         var currentNull = nullStart
         var currentDataElement = 0
-        var currentResultIndex = 0
+        var currentResultIndex = emptyStartAmount
 
         for (amount in presence) {
             if (currentNull) {
@@ -47,6 +47,26 @@ class ComponentMapperSnapshot<T : Component>(
             currentNull = !currentNull
         }
 
+        return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ComponentMapperSnapshot<*>) return false
+
+        if (!presence.contentEquals(other.presence)) return false
+        if (!data.contentEquals(other.data)) return false
+        if (nullStart != other.nullStart) return false
+        if (type != other.type) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = presence.contentHashCode()
+        result = 31 * result + data.contentHashCode()
+        result = 31 * result + nullStart.hashCode()
+        result = 31 * result + type.hashCode()
         return result
     }
 
@@ -87,5 +107,7 @@ class ComponentMapperSnapshot<T : Component>(
             return ComponentMapperSnapshot(presenceResult.toIntArray(), dataResultArray, nullStart, type)
         }
     }
+
+
 
 }

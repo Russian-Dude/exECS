@@ -14,7 +14,7 @@ import com.rdude.exECS.utils.reflection.GeneratedFieldsInitializer
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
-abstract class System {
+sealed class System {
 
     abstract val aspect: Aspect
 

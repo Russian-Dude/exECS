@@ -5,6 +5,7 @@ import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentPresenceChange
 import com.rdude.exECS.entity.EntityMapper
+import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.ActingEvent
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.event.EventBus
@@ -18,6 +19,7 @@ import com.rdude.exECS.serialization.WorldSnapshotGenerator
 import com.rdude.exECS.system.*
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IterableArray
+import kotlin.reflect.KClass
 
 class World {
 
@@ -38,21 +40,12 @@ class World {
 
     fun act(delta: Double) {
         isCurrentlyActing = true
-        while (internalChangeOccurred) {
-            internalChangeOccurred = false
-            // update systems' entities
-            entityMapper.notifySubscriptionsManager()
-            // fire entity added/removed and component added/removed events
-            eventBus.fireInternalEvents()
-            // actualize data
-            entityMapper.actualize()
-            // remove poolables to pool
-            removePoolablesToPoolIfNeeded()
-        }
+        internalChanges()
         // set delta of main events
         actingEvent.delta = delta
         // fire events
         eventBus.fireEvents()
+        internalChanges()
         isCurrentlyActing = false
     }
 
@@ -77,6 +70,13 @@ class World {
 
     internal fun removeEntity(id: Int) = entityMapper.requestRemove(id)
 
+    fun addSingletonEntity(singletonEntity: SingletonEntity) {
+        if (singletonEntity.isWorldInitialized && singletonEntity.world != this) {
+            throw IllegalStateException("Singleton entity instance can only be registered in one World instance")
+        }
+
+    }
+
     fun addSystem(system: System) {
         checkSystemCorrectness(system)
         system.registered = true
@@ -94,6 +94,11 @@ class World {
         }
         if (!subscriptionsCopied) {
             val subscription = EntitiesSubscription(system.aspect)
+            for (entityId in 0 until entityMapper.nextID) {
+                if (subscription.isEntityMatchAspect(entityId, entityMapper)) {
+                    subscription.addEntity(entityId)
+                }
+            }
             system.entitiesSubscription = subscription
             entityMapper.registerEntitiesSubscription(system.entitiesSubscription)
             subscriptionsManager.add(subscription)
@@ -113,6 +118,19 @@ class World {
         }
     }
 
+    fun removeSystem(ofType: KClass<out System>) {
+        var toRemove: System? = null
+        for (system in systems) {
+            if (system::class == ofType) {
+                toRemove = system
+                break
+            }
+        }
+        if (toRemove != null) removeSystem(toRemove)
+    }
+
+    inline fun <reified T : System> removeSystem() = removeSystem(T::class)
+
     fun clearEntities() {
         entityMapper.clear()
     }
@@ -120,6 +138,7 @@ class World {
     /** Rearrange entity IDs to eliminate potential gaps that could be caused by unused IDs.*/
     fun rearrange() {
         if (isCurrentlyActing) throw IllegalStateException("Can not rearrange world while acting")
+
         entityMapper.rearrange()
     }
 
@@ -160,6 +179,20 @@ class World {
             },
             removeIf = { returned }
         )
+    }
+
+    private fun internalChanges() {
+        while (internalChangeOccurred) {
+            internalChangeOccurred = false
+            // update systems' entities
+            entityMapper.notifySubscriptionsManager()
+            // fire entity added/removed and component added/removed events
+            eventBus.fireInternalEvents()
+            // actualize data
+            entityMapper.actualize()
+            // remove poolables to pool
+            removePoolablesToPoolIfNeeded()
+        }
     }
 
     companion object {

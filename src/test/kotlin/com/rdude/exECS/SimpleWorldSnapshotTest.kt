@@ -72,7 +72,7 @@ class SimpleWorldSnapshotTest {
 
     @Test
     fun amountEquals() {
-        assert(snapshot1.entitiesAmount == snapshot2.entitiesAmount)
+        assert(snapshot1.simpleEntitiesAmount == snapshot2.simpleEntitiesAmount)
     }
 
     @Test

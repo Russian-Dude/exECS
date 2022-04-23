@@ -5,7 +5,6 @@ import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.ArrayQueue
 import com.rdude.exECS.utils.collections.IterableArray
-import com.rdude.exECS.utils.reflection.ReflectionUtils
 
 class EventBus(mainEvent: ActingEvent) {
 
