@@ -5,6 +5,7 @@ import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.inject.SystemDelegate
 import com.rdude.exECS.pool.Poolable
@@ -44,6 +45,11 @@ sealed class System {
     }
 
     protected inline fun <reified T : System> inject() = SystemDelegate(T::class)
+
+    fun getEntitySingleton(cl: KClass<out SingletonEntity>) =
+        world.entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)]
+
+    inline fun <reified T : SingletonEntity> getEntitySingleton() = getEntitySingleton(T::class)
 
     protected fun <T : Component> EntityWrapper.getComponent(componentClass: KClass<T>): T? =
         world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] as T?

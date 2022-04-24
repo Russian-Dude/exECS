@@ -9,6 +9,7 @@ import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.reflection.EventSystemGenericQualifier
 import com.rdude.exECS.utils.reflection.GeneratedFieldsInitializer
 import com.rdude.exECS.utils.reflection.ReflectionUtils
+import com.rdude.exECS.utils.reflection.SystemDelegatesUpdater
 import kotlin.reflect.KClass
 
 internal object ExEcs {
@@ -29,6 +30,8 @@ internal object ExEcs {
 
     lateinit var eventSystemGenericQualifier: EventSystemGenericQualifier private set
 
+    lateinit var systemDelegatesUpdater: SystemDelegatesUpdater private set
+
     fun initializeIfNeeded() {
         if (initialized) return
         reflectionUtils = ReflectionUtils()
@@ -38,6 +41,7 @@ internal object ExEcs {
         singletonEntityIDsResolver = SingletonEntityIDsResolver()
         generatedFieldsInitializer = GeneratedFieldsInitializer()
         eventSystemGenericQualifier = EventSystemGenericQualifier()
+        systemDelegatesUpdater = SystemDelegatesUpdater()
         registerGeneratedPoolsAsDefaults()
         initialized = true
     }

@@ -17,8 +17,8 @@ abstract class SingletonEntity {
     val entityID: Int = ExEcs.singletonEntityIDsResolver.getId(this::class)
 
     @Transient
-    lateinit var world: World
-        internal set
+    internal lateinit var world: World
+        private set
 
     internal val isWorldInitialized get() = ::world.isInitialized
 
@@ -67,5 +67,10 @@ abstract class SingletonEntity {
     operator fun <T : Component> get(componentClass: KClass<T>) =
         getComponent(componentClass)
             ?: throw IllegalStateException("Entity does not have a component of type $componentClass.")
+
+    internal fun setWorld(world: World) {
+        this.world = world
+        ExEcs.generatedFieldsInitializer.initialize(this)
+    }
 
 }

@@ -78,9 +78,6 @@ internal class DefaultEntityEventsTest {
     @Order(2)
     fun entityRemoved() {
         world.queueEvent(NeedToRemoveEntityEvent())
-        // first iteration - request
-        world.act(0.0)
-        // second - actual remove
         world.act(0.0)
         assert(entityRemovedSystem.component == checkComponent)
     }

@@ -20,6 +20,8 @@ import com.rdude.exECS.system.*
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IterableArray
 import kotlin.reflect.KClass
+import kotlin.reflect.full.getExtensionDelegate
+import kotlin.reflect.full.memberProperties
 
 class World {
 
@@ -88,8 +90,16 @@ class World {
         if (singletonEntity.isWorldInitialized && singletonEntity.world != this) {
             throw IllegalStateException("Singleton entity instance can only be registered in one World instance")
         }
+        if (!singletonEntity.isWorldInitialized) {
+            singletonEntity.setWorld(this)
+        }
         entityMapper.addSingletonEntity(singletonEntity)
     }
+
+    fun getEntitySingleton(cl: KClass<out SingletonEntity>) =
+        entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)]
+
+    inline fun <reified T : SingletonEntity> getEntitySingleton() = getEntitySingleton(T::class)
 
     fun addSystem(system: System) {
         checkSystemCorrectness(system)

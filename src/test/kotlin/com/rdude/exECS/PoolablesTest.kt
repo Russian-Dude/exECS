@@ -95,7 +95,6 @@ class PoolablesTest {
         val component = fromPool<SimplePoolableComponent>()
         world.createEntity(component)
         world.act(0.0)
-        world.act(0.0)
         val component2 = fromPool<SimplePoolableComponent>()
         assert(component === component2)
     }
@@ -107,7 +106,6 @@ class PoolablesTest {
         world.addSystem(system)
         val component = fromPool<SimplePoolableComponent>()
         world.createEntity(component)
-        world.act(0.0)
         world.act(0.0)
         val component2 = fromPool<SimplePoolableComponent>()
         assert(component === component2)
