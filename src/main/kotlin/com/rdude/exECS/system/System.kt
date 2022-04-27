@@ -1,9 +1,11 @@
 package com.rdude.exECS.system
 
 import com.rdude.exECS.aspect.Aspect
+import com.rdude.exECS.aspect.AspectComponentDuplicateException
+import com.rdude.exECS.aspect.AspectEntry
 import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.component.ComponentTypeIDsResolver
+import com.rdude.exECS.component.State
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.Event
@@ -11,13 +13,10 @@ import com.rdude.exECS.inject.SystemDelegate
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
 import com.rdude.exECS.utils.ExEcs
-import com.rdude.exECS.utils.reflection.GeneratedFieldsInitializer
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
-sealed class System {
-
-    abstract val aspect: Aspect
+abstract class System(val aspect: Aspect) {
 
     @Transient
     lateinit var world: World
@@ -30,6 +29,18 @@ sealed class System {
 
     @Transient
     internal lateinit var entitiesSubscription: EntitiesSubscription
+
+
+    init {
+        ExEcs.initializeIfNeeded()
+        try {
+            ExEcs.aspectCorrectnessChecker.checkAndThrowIfNotCorrect(aspect)
+        }
+        catch (e: AspectComponentDuplicateException) {
+            throw IllegalArgumentException("Duplicate component in system aspect. System: ${this::class.qualifiedName}, component: ${e.duplicate.qualifiedName}")
+        }
+    }
+
 
     fun createEntity(vararg components: Component) = world.createEntity(*components)
 
@@ -103,13 +114,49 @@ sealed class System {
 
     protected companion object {
         @JvmStatic
-        protected infix fun KClass<out Component>.and(other: KClass<out Component>): MutableList<KClass<out Component>> =
-            mutableListOf(this, other)
+        protected infix fun KClass<out Component>.and(other: KClass<out Component>): AspectEntry {
+            val entry = AspectEntry()
+            entry.simpleComponents.add(this)
+            entry.simpleComponents.add(other)
+            return entry
+        }
 
         @JvmStatic
-        protected infix fun MutableList<KClass<out Component>>.and(other: KClass<out Component>): MutableList<KClass<out Component>> {
-            add(other)
+        protected infix fun State.and(other: KClass<out Component>): AspectEntry {
+            val entry = AspectEntry()
+            entry.stateComponents.add(this)
+            entry.simpleComponents.add(other)
+            return entry
+        }
+
+        @JvmStatic
+        protected infix fun KClass<out Component>.and(other: State): AspectEntry {
+            val entry = AspectEntry()
+            entry.simpleComponents.add(this)
+            entry.stateComponents.add(other)
+            return entry
+        }
+
+        @JvmStatic
+        protected infix fun State.and(other: State): AspectEntry {
+            val entry = AspectEntry()
+            entry.stateComponents.add(this)
+            entry.stateComponents.add(other)
+            return entry
+        }
+
+        @JvmStatic
+        protected infix fun AspectEntry.and(other: KClass<out Component>): AspectEntry {
+            simpleComponents.add(other)
             return this
         }
+
+        @JvmStatic
+        protected infix fun AspectEntry.and(other: State): AspectEntry {
+            stateComponents.add(other)
+            return this
+        }
+
+
     }
 }

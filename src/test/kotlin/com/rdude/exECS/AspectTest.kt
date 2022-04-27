@@ -1,13 +1,11 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.State
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.system.ActingSystem
 import com.rdude.exECS.world.World
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
 import kotlin.test.assertFalse
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -18,6 +16,8 @@ internal class AspectTest {
     private inner class Component3 : Component
     private inner class Component4 : Component
     private inner class Component5 : Component
+    private inner class State1 : State
+    private inner class State2 : State
 
     private inner class AllOf123 : ActingSystem(allOf = Component1::class and Component2::class and Component3::class) {
         var fired = false
@@ -113,7 +113,41 @@ internal class AspectTest {
         }
     }
 
+    private inner class WrongSystem1 : ActingSystem(anyOf = Component1::class and Component2::class and Component1::class) {
+        override fun act(entity: EntityWrapper, delta: Double) { }
+    }
+
+    private inner class WrongSystem2 : ActingSystem(
+        allOf = Component1::class and Component2::class,
+        exclude = Component1::class
+    ) {
+        override fun act(entity: EntityWrapper, delta: Double) { }
+    }
+
+    private inner class WrongSystem3 : ActingSystem(
+        allOf = state1 and state1,
+        exclude = Component1::class
+    ) {
+        override fun act(entity: EntityWrapper, delta: Double) { }
+    }
+
+    private inner class WrongSystem4 : ActingSystem(
+        allOf = state1 and Component2::class,
+        exclude = state1
+    ) {
+        override fun act(entity: EntityWrapper, delta: Double) { }
+    }
+
+    private inner class WrongSystem5 : ActingSystem(
+        allOf = state1 and state2,
+    ) {
+        override fun act(entity: EntityWrapper, delta: Double) { }
+    }
+
     private val world = World()
+
+    private val state1 = State1()
+    private val state2 = State1()
 
     private val allOf123 = AllOf123()
     private val anyOf123 = Any123()
@@ -356,6 +390,31 @@ internal class AspectTest {
         world.createEntity(Component1(), Component2())
         world.act(0.0)
         assertFalse(only1Exclude2.fired)
+    }
+
+    @Test
+    fun wrongAspect1() {
+        assertThrows<IllegalArgumentException> { WrongSystem1() }
+    }
+
+    @Test
+    fun wrongAspect2() {
+        assertThrows<IllegalArgumentException> { WrongSystem2() }
+    }
+
+    @Test
+    fun wrongAspect3() {
+        assertThrows<IllegalArgumentException> { WrongSystem3() }
+    }
+
+    @Test
+    fun wrongAspect4() {
+        assertThrows<IllegalArgumentException> { WrongSystem4() }
+    }
+
+    @Test
+    fun wrongAspect5() {
+        assertThrows<IllegalArgumentException> { WrongSystem5() }
     }
 
 

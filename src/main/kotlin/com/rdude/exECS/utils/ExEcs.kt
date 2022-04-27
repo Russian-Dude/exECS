@@ -1,5 +1,6 @@
 package com.rdude.exECS.utils
 
+import com.rdude.exECS.aspect.AspectCorrectnessChecker
 import com.rdude.exECS.component.ComponentTypeIDsResolver
 import com.rdude.exECS.entity.SingletonEntityIDsResolver
 import com.rdude.exECS.event.EventTypeIDsResolver
@@ -29,6 +30,8 @@ internal object ExEcs {
 
     lateinit var eventSystemGenericQualifier: EventSystemGenericQualifier private set
 
+    lateinit var aspectCorrectnessChecker: AspectCorrectnessChecker
+
     fun initializeIfNeeded() {
         if (initialized) return
         reflectionUtils = ReflectionUtils()
@@ -38,6 +41,7 @@ internal object ExEcs {
         singletonEntityIDsResolver = SingletonEntityIDsResolver()
         generatedFieldsInitializer = GeneratedFieldsInitializer()
         eventSystemGenericQualifier = EventSystemGenericQualifier()
+        aspectCorrectnessChecker = AspectCorrectnessChecker()
         registerGeneratedPoolsAsDefaults()
         initialized = true
     }

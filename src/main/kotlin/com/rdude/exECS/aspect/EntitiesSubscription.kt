@@ -1,9 +1,11 @@
 package com.rdude.exECS.aspect
 
+import com.rdude.exECS.component.State
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.utils.Dummies
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntIterableArray
+import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.UnsafeBitSet
 
 /**
@@ -24,9 +26,17 @@ internal class EntitiesSubscription(aspect: Aspect) {
     private var hasRemoveRequests = false
 
     // Aspect properties mapped to component type ids
-    internal val anyOf: IntIterableArray
-    internal val allOf: IntIterableArray
-    internal val exclude: IntIterableArray
+    private val anyOfByType: IntIterableArray
+    private val allOfByType: IntIterableArray
+    private val excludeByType: IntIterableArray
+
+    // States aspect properties
+    private val anyOfByState: IterableArray<State>
+    private val allOfByState: IterableArray<State>
+    private val excludeByState: IterableArray<State>
+
+    // Perform is entity match aspect checks, only on non-empty aspect entries
+    private val entityMatchChecks: IterableArray<Check> = IterableArray()
 
     init {
         if (aspect.anyOf.isEmpty() && aspect.allOf.isEmpty()) {
@@ -34,35 +44,40 @@ internal class EntitiesSubscription(aspect: Aspect) {
             hasEntities[Dummies.DUMMY_ENTITY_ID] = true
         }
 
-        val anyOfTypeIds = aspect.anyOf.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
-        anyOf = IntIterableArray(true, *anyOfTypeIds)
+        val anyOfTypeIds = aspect.anyOf.simpleComponents.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
+        anyOfByType = IntIterableArray(true, *anyOfTypeIds)
         anyOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        val allOfTypeIds = aspect.allOf.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
-        allOf = IntIterableArray(true, *allOfTypeIds)
+        anyOfByState = IterableArray(true, *aspect.anyOf.stateComponents.toTypedArray())
+        anyOfByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
+
+        val allOfTypeIds = aspect.allOf.simpleComponents.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
+        allOfByType = IntIterableArray(true, *allOfTypeIds)
         allOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        val excludeTypeIds = aspect.exclude.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
-        exclude = IntIterableArray(true, *excludeTypeIds)
+        allOfByState = IterableArray(true, *aspect.allOf.stateComponents.toTypedArray())
+        allOfByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
+
+        val excludeTypeIds = aspect.exclude.simpleComponents.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
+        excludeByType = IntIterableArray(true, *excludeTypeIds)
         excludeTypeIds.forEach { componentTypeIDs[it] = true }
+
+        excludeByState = IterableArray(true, *aspect.exclude.stateComponents.toTypedArray())
+        excludeByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
+
+        if (excludeByType.isNotEmpty()) entityMatchChecks.add(CheckExcludeType())
+        if (excludeByState.isNotEmpty()) entityMatchChecks.add(CheckExcludeState())
+        if (anyOfByType.isNotEmpty()) entityMatchChecks.add(CheckAnyOfType())
+        if (anyOfByState.isNotEmpty()) entityMatchChecks.add(CheckAnyOfState())
+        if (allOfByType.isNotEmpty()) entityMatchChecks.add(CheckAllOfType())
+        if (allOfByState.isNotEmpty()) entityMatchChecks.add(CheckAllOfState())
     }
 
     fun isSubscribedToType(typeID: Int) = componentTypeIDs[typeID]
 
     fun isEntityMatchAspect(entityID: Int, entityMapper: EntityMapper): Boolean {
-        for (typeId in exclude) {
-            if (entityMapper.componentMappers[typeId][entityID] != null) return false
-        }
-        var hasAnyOf = false
-        for (typeId in anyOf) {
-            if (entityMapper.componentMappers[typeId][entityID] != null) {
-                hasAnyOf = true
-                break
-            }
-        }
-        if (!hasAnyOf && anyOf.isNotEmpty()) return false
-        for (typeId in allOf) {
-            if (entityMapper.componentMappers[typeId][entityID] == null) return false
+        for (entityMatchCheck in entityMatchChecks) {
+            if (!entityMatchCheck.check(entityID, entityMapper)) return false
         }
         return true
     }
@@ -96,6 +111,69 @@ internal class EntitiesSubscription(aspect: Aspect) {
         entityIDs.clear()
         hasEntities.clear()
         hasRemoveRequests = false
+    }
+
+
+    private interface Check {
+        fun check(entityID: Int, entityMapper: EntityMapper): Boolean
+    }
+
+    private inner class CheckExcludeType : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
+            for (typeId in excludeByType) {
+                if (entityMapper.componentMappers[typeId][entityID] != null) return false
+            }
+            return true
+        }
+    }
+
+    private inner class CheckExcludeState : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
+            for (state in excludeByState) {
+                if (entityMapper.componentMappers[state.getComponentTypeId()][entityID] == state) return false
+            }
+            return true
+        }
+    }
+
+    private inner class CheckAnyOfType : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
+            for (typeId in anyOfByType) {
+                if (entityMapper.componentMappers[typeId][entityID] != null) {
+                    return true
+                }
+            }
+            return false
+        }
+    }
+
+    private inner class CheckAnyOfState : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
+            for (state in anyOfByState) {
+                if (entityMapper.componentMappers[state.getComponentTypeId()][entityID] == state) {
+                    return true
+                }
+            }
+            return false
+        }
+    }
+
+    private inner class CheckAllOfType : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
+            for (typeId in allOfByType) {
+                if (entityMapper.componentMappers[typeId][entityID] == null) return false
+            }
+            return true
+        }
+    }
+
+    private inner class CheckAllOfState : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
+            for (state in allOfByState) {
+                if (entityMapper.componentMappers[state.getComponentTypeId()][entityID] != state) return false
+            }
+            return true
+        }
     }
 
 }
