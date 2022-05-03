@@ -84,6 +84,18 @@ class World {
         entityMapper.create(components)
     }
 
+    fun createEntitiesWithSameComponents(amount: Int, vararg components: Component) {
+        for (i in 0 until amount) {
+            createEntity(*components)
+        }
+    }
+
+    fun createEntities(amount: Int, vararg components: (Int) -> Component) {
+        for (i in 0 until amount) {
+            createEntity(*Array(components.size) { components[it](i) })
+        }
+    }
+
     internal fun removeEntity(id: Int) = entityMapper.requestRemove(id)
 
     fun addSingletonEntity(singletonEntity: SingletonEntity) {
@@ -155,6 +167,10 @@ class World {
     }
 
     inline fun <reified T : System> removeSystem() = removeSystem(T::class)
+
+    fun getSystem(ofType: KClass<out System>) = systems.find { it::class == ofType }
+
+    inline fun <reified T : System> getSystem() = getSystem(T::class)
 
     fun clearEntities() {
         entityMapper.clear()

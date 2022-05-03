@@ -25,6 +25,9 @@ internal class EntitiesSubscription(aspect: Aspect) {
     // If presence of entities was not changed there is no need to remove unused entities
     private var hasRemoveRequests = false
 
+    // Simple subscription is subscribed to only dummy entity
+    private val isSimpleSubscription: Boolean
+
     // Aspect properties mapped to component type ids
     private val anyOfByType: IntIterableArray
     private val allOfByType: IntIterableArray
@@ -39,10 +42,7 @@ internal class EntitiesSubscription(aspect: Aspect) {
     private val entityMatchChecks: IterableArray<Check> = IterableArray()
 
     init {
-        if (aspect.anyOf.isEmpty() && aspect.allOf.isEmpty()) {
-            entityIDs.add(Dummies.DUMMY_ENTITY_ID)
-            hasEntities[Dummies.DUMMY_ENTITY_ID] = true
-        }
+        isSimpleSubscription = aspect.anyOf.isEmpty() && aspect.allOf.isEmpty()
 
         val anyOfTypeIds = aspect.anyOf.simpleComponents.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
         anyOfByType = IntIterableArray(true, *anyOfTypeIds)
@@ -76,6 +76,9 @@ internal class EntitiesSubscription(aspect: Aspect) {
     fun isSubscribedToType(typeID: Int) = componentTypeIDs[typeID]
 
     fun isEntityMatchAspect(entityID: Int, entityMapper: EntityMapper): Boolean {
+        if (isSimpleSubscription) {
+            return entityID == Dummies.DUMMY_ENTITY_ID
+        }
         for (entityMatchCheck in entityMatchChecks) {
             if (!entityMatchCheck.check(entityID, entityMapper)) return false
         }

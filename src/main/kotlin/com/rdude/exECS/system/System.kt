@@ -44,6 +44,12 @@ abstract class System(val aspect: Aspect) {
 
     fun createEntity(vararg components: Component) = world.createEntity(*components)
 
+    fun createEntitiesWithSameComponents(amount: Int, vararg components: Component) =
+        world.createEntitiesWithSameComponents(amount, *components)
+
+    fun createEntities(amount: Int, vararg components: (Int) -> Component) =
+        world.createEntities(amount, *components)
+
     fun queueEvent(event: Event) = world.queueEvent(event)
 
     inline fun <reified T> queueEvent() where T : Event, T : Poolable = world.queueEvent<T>()
@@ -91,6 +97,8 @@ abstract class System(val aspect: Aspect) {
     protected fun EntityWrapper.remove() = world.removeEntity(entityID)
 
     protected inline fun <reified T : Component> EntityWrapper.getComponent(): T? = getComponent(T::class)
+
+    protected inline operator fun <reified T : Component> EntityWrapper.invoke(): T? = getComponent(T::class)
 
     protected inline fun <reified T : Component> EntityWrapper.removeComponent() = removeComponent(T::class)
 

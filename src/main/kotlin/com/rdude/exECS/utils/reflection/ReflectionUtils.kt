@@ -5,11 +5,11 @@ import kotlin.reflect.KClass
 
 internal class ReflectionUtils {
 
-    private val notAbstractSubClassesCache = mutableMapOf<KClass<*>, Set<KClass<*>>>()
+    private val notAbstractSubClassesCache = mutableMapOf<KClass<*>, List<KClass<*>>>()
 
-    internal fun <T : Any> getNotAbstractSubClassesFromAllPackages(kClass: KClass<T>) : Set<KClass<out T>> {
+    internal fun <T : Any> getNotAbstractSubClassesFromAllPackages(kClass: KClass<T>): List<KClass<out T>> {
         val cached = notAbstractSubClassesCache[kClass]
-        if (cached != null) return cached as Set<KClass<out T>>
+        if (cached != null) return cached as List<KClass<out T>>
         val result = Package.getPackages()
             .asSequence()
             .map { it.name.substringBefore('.') }
@@ -18,7 +18,7 @@ internal class ReflectionUtils {
             .flatMap { it.getSubTypesOf(kClass.java) }
             .map { it.kotlin }
             .filterNot { it.isAbstract }
-            .toSet()
+            .toList()
         notAbstractSubClassesCache[kClass] = result
         return result
     }

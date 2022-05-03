@@ -12,7 +12,7 @@ class ComponentTypeIDsResolver {
 
     init {
         val allComponentClasses = ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(Component::class)
-        for ((index, kClass) in allComponentClasses.toList().withIndex()) {
+        for ((index, kClass) in allComponentClasses.withIndex()) {
             fqNameToId[kClass.qualifiedName!!] = index
             classToIdMap[kClass] = index
             idToKClass[index] = kClass

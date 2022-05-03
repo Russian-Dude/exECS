@@ -53,6 +53,8 @@ abstract class SingletonEntity {
 
     inline fun <reified T : Component> getComponent(): T? = getComponent(T::class)
 
+    inline operator fun <reified T : Component> invoke(): T? = getComponent(T::class)
+
     inline fun <reified T : Component> removeComponent() = removeComponent(T::class)
 
     inline fun <reified T : Component> hasComponent() = hasComponent(T::class)

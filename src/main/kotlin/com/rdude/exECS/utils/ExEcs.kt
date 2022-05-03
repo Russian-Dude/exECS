@@ -32,6 +32,10 @@ internal object ExEcs {
 
     lateinit var aspectCorrectnessChecker: AspectCorrectnessChecker
 
+    init {
+        initializeIfNeeded()
+    }
+
     fun initializeIfNeeded() {
         if (initialized) return
         reflectionUtils = ReflectionUtils()
@@ -43,6 +47,7 @@ internal object ExEcs {
         eventSystemGenericQualifier = EventSystemGenericQualifier()
         aspectCorrectnessChecker = AspectCorrectnessChecker()
         registerGeneratedPoolsAsDefaults()
+        generatedFieldsInitializer.initializeAllEnumComponentIds()
         initialized = true
     }
 
