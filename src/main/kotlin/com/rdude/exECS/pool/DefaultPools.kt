@@ -31,7 +31,7 @@ internal class DefaultPools {
 
     private fun <T : Poolable> findConstructor(forPoolable: KClass<T>): KFunction<T> {
         if (forPoolable.isInner) {
-            throw IllegalStateException("Can not create default pool for inner class of $forPoolable")
+            throw IllegalStateException("Can not create default pool for inner $forPoolable")
         }
 
         var constructor: KFunction<T>? = null

@@ -47,7 +47,6 @@ internal object ExEcs {
         eventSystemGenericQualifier = EventSystemGenericQualifier()
         aspectCorrectnessChecker = AspectCorrectnessChecker()
         registerGeneratedPoolsAsDefaults()
-        generatedFieldsInitializer.initializeAllEnumComponentIds()
         initialized = true
     }
 

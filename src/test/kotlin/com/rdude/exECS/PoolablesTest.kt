@@ -1,6 +1,7 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.PoolableComponent
 import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.pool.ConstructorForDefaultPool
@@ -22,15 +23,18 @@ class PoolablesTest {
 
     class SimplePoolableComponent : Component, Poolable
 
-    private inner class EntityRemoverSystem : ActingSystem(only = SimplePoolableComponent::class) {
+    class SimplePoolableComponent2 : PoolableComponent
+
+    private inner class EntityRemoverSystem : ActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
         override fun act(entity: EntityWrapper, delta: Double) {
             entity.remove()
         }
     }
 
-    private inner class ComponentRemoverSystem : ActingSystem(only = SimplePoolableComponent::class) {
+    private inner class ComponentRemoverSystem : ActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
         override fun act(entity: EntityWrapper, delta: Double) {
             entity.removeComponent<SimplePoolableComponent>()
+            entity.removeComponent<SimplePoolableComponent2>()
         }
     }
 
@@ -100,6 +104,18 @@ class PoolablesTest {
     }
 
     @Test
+    fun returnComponentToPoolAfterEntityRemoved2() {
+        val world = World()
+        val system = EntityRemoverSystem()
+        world.addSystem(system)
+        val component = fromPool<SimplePoolableComponent2>()
+        world.createEntity(component)
+        world.act(0.0)
+        val component2 = fromPool<SimplePoolableComponent2>()
+        assert(component === component2)
+    }
+
+    @Test
     fun returnComponentToPoolAfterBeingRemoved() {
         val world = World()
         val system = ComponentRemoverSystem()
@@ -108,6 +124,18 @@ class PoolablesTest {
         world.createEntity(component)
         world.act(0.0)
         val component2 = fromPool<SimplePoolableComponent>()
+        assert(component === component2)
+    }
+
+    @Test
+    fun returnComponentToPoolAfterBeingRemoved2() {
+        val world = World()
+        val system = ComponentRemoverSystem()
+        world.addSystem(system)
+        val component = fromPool<SimplePoolableComponent2>()
+        world.createEntity(component)
+        world.act(0.0)
+        val component2 = fromPool<SimplePoolableComponent2>()
         assert(component === component2)
     }
 

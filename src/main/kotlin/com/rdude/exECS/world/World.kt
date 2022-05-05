@@ -4,6 +4,7 @@ import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentPresenceChange
+import com.rdude.exECS.component.PoolableComponent
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.ActingEvent
@@ -20,8 +21,6 @@ import com.rdude.exECS.system.*
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IterableArray
 import kotlin.reflect.KClass
-import kotlin.reflect.full.getExtensionDelegate
-import kotlin.reflect.full.memberProperties
 
 class World {
 
@@ -212,7 +211,7 @@ class World {
         var returned = false
         poolablesToReturn.iterate(
             onEach = {
-                if (it is Component && it.insideEntities == 0) {
+                if (it is Component && ((it as? PoolableComponent)?.insideEntities ?: PoolableComponent.componentsToInsideEntitiesAmount[it]) == 0) {
                     it.returnToPool()
                     returned = true
                 }

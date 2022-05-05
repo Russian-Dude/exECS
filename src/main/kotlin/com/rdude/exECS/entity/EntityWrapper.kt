@@ -7,9 +7,16 @@ import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
 /**
- * Wraps entity ID.
+ * Wraps an entity ID.
  * Do not store reference to entity wrapper because wrapped ID is changed consistently.
- * If compiler plugin is used, explicit calls to methods will be optimized at compile time by the plugin.
+ * Also prefer not to pass entity wrapper between worlds because entity wrapper is just an int value and represents
+ * different entities in different worlds.
+ * All methods in this class declared as internal because preferred way to interact with entity wrapper is by
+ * using equivalent methods in [System] and [SingletonEntity] classes.
+ * Those are the same methods but without need to pass world instance as an argument.
+ * However, if there is still a need to use entity wrapper outside of systems and singletons, use [EntityWrapperMethods] object.
+ * If compiler plugin is used, explicit calls to methods (in systems and singleton entities)
+ * will be optimized at compile time by the plugin.
  * Implicit calls will remain as is.
  */
 @JvmInline

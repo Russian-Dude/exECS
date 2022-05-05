@@ -5,6 +5,8 @@ import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.ExEcs
+import com.rdude.exECS.utils.decreaseCount
+import com.rdude.exECS.utils.increaseCount
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
@@ -27,10 +29,16 @@ class ComponentMapper<T : Component> private constructor(
         val removedComponent = backingArray[id]
         backingArray[id] = null
         if (removedComponent != null) {
-            // update component entity amount
-            removedComponent.insideEntities--
-            if (removedComponent.insideEntities == 0 && removedComponent is Poolable) {
-                world.poolablesToReturn.add(removedComponent)
+            // update component entity amount if it is poolable and request to remove it to the pool if amount is 0
+            if (removedComponent is Poolable) {
+                val insideEntities =
+                    if (removedComponent is PoolableComponent) --removedComponent.insideEntities
+                    else PoolableComponent.componentsToInsideEntitiesAmount.decreaseCount(removedComponent)
+                if (insideEntities == 0) world.poolablesToReturn.add(removedComponent)
+            }
+            // if component is rich component, clear it's `inside entity` property
+            if (removedComponent is RichComponent) {
+                removedComponent.entityId = -1
             }
             // notify subscribersManager
             world.componentPresenceChange(
@@ -51,16 +59,34 @@ class ComponentMapper<T : Component> private constructor(
 
     fun addComponent(id: Int, component: T): T {
         val removedComponent = backingArray[id]
+        // if adding same component just return it
+        if (removedComponent == component) return removedComponent
+        // if component is rich component, set it's `inside entity` property or throw if they already set
+        if (component is RichComponent) {
+            if (component.entityId >= 0) throw IllegalStateException("Instance of rich component is already plugged into an entity")
+            component.entityId = id
+        }
+        // if component was replaced
         if (removedComponent != null && removedComponent != component) {
-            removedComponent.insideEntities--
-            if (removedComponent.insideEntities == 0 && removedComponent is Poolable) {
-                world.poolablesToReturn.add(removedComponent)
+            // update removed component entity amount if it is poolable and request to remove it to the pool if amount is 0
+            if (removedComponent is Poolable) {
+                val insideEntities =
+                    if (removedComponent is PoolableComponent) --removedComponent.insideEntities
+                    else PoolableComponent.componentsToInsideEntitiesAmount.decreaseCount(removedComponent)
+                if (insideEntities == 0) world.poolablesToReturn.add(removedComponent)
+            }
+            // if removed component is rich component, clear it's `inside entity` property
+            if (removedComponent is RichComponent) {
+                removedComponent.entityId = -1
             }
         }
         // add component to the actual entity
         backingArray[id] = component
-        // update component entity amount
-        component.insideEntities++
+        // update component entity amount if it is poolable
+        if (component is Poolable) {
+            if (component is PoolableComponent) component.insideEntities++
+            else PoolableComponent.componentsToInsideEntitiesAmount.increaseCount(component)
+        }
         // notify subscribersManager
         world.componentPresenceChange(
             ComponentPresenceChange(
@@ -89,10 +115,16 @@ class ComponentMapper<T : Component> private constructor(
         val removedComponent = backingArray[id]
         backingArray[id] = null
         if (removedComponent != null) {
-            // update component entity amount
-            removedComponent.insideEntities--
-            if (removedComponent.insideEntities == 0 && removedComponent is Poolable) {
-                world.poolablesToReturn.add(removedComponent)
+            // update component entity amount if it is poolable and request to remove it to the pool if amount is 0
+            if (removedComponent is Poolable) {
+                val insideEntities =
+                    if (removedComponent is PoolableComponent) --removedComponent.insideEntities
+                    else PoolableComponent.componentsToInsideEntitiesAmount.decreaseCount(removedComponent)
+                if (insideEntities == 0) world.poolablesToReturn.add(removedComponent)
+            }
+            // if component is rich component, clear it's `inside entity` property
+            if (removedComponent is RichComponent) {
+                removedComponent.entityId = -1
             }
         }
     }
