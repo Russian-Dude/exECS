@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.russian-dude"
-version = "1.4.3"
+version = "1.4.4"
 
 repositories {
     mavenCentral()
@@ -24,12 +24,12 @@ tasks.test {
 }
 
 tasks.withType<KotlinCompile>() {
-    kotlinOptions.jvmTarget = "16"
+    kotlinOptions.jvmTarget = "11"
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 publishing {
@@ -37,7 +37,7 @@ publishing {
         create<MavenPublication>("maven") {
             groupId = "com.russian-dude"
             artifactId = "execs"
-            version = "1.4.3"
+            version = "1.4.4"
             from(components["java"])
         }
     }
