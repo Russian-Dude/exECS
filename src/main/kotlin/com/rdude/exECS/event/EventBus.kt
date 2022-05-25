@@ -57,7 +57,11 @@ class EventBus(mainEvent: ActingEvent, private val world: World) {
         // fire main event
         for (system in actingEventSubscribers) {
             if (world.subscriptionsNeedToBeUpdated) world.entityMapper.notifySubscriptionsManager()
-            system.fireEvent(actingEvent)
+            if (system.enabled) {
+                system.startActing()
+                system.fireEvent(actingEvent)
+                system.endActing()
+            }
         }
         // fire other queued events
         var event = eventQueue.poll()
@@ -65,7 +69,11 @@ class EventBus(mainEvent: ActingEvent, private val world: World) {
             val iterableArray = eventsToSystems[event.getEventTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
                 if (world.subscriptionsNeedToBeUpdated) world.entityMapper.notifySubscriptionsManager()
-                system.fireEvent(event)
+                if (system.enabled) {
+                    system.startActing()
+                    system.fireEvent(event)
+                    system.endActing()
+                }
             }
             if (event is Poolable) {
                 event.returnToPool()
@@ -81,7 +89,11 @@ class EventBus(mainEvent: ActingEvent, private val world: World) {
             val iterableArray = eventsToSystems[event.getEventTypeId()]
             for (system in iterableArray as IterableArray<EventSystem<in Event>>) {
                 if (world.subscriptionsNeedToBeUpdated) world.entityMapper.notifySubscriptionsManager()
-                if (system.enabled) system.fireEvent(event)
+                if (system.enabled) {
+                    system.startActing()
+                    system.fireEvent(event)
+                    system.endActing()
+                }
             }
             if (event is Poolable) {
                 event.returnToPool()

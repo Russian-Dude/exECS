@@ -8,7 +8,7 @@ import com.rdude.exECS.entity.EntityWrapper
 import com.rdude.exECS.event.Event
 import kotlin.reflect.KClass
 
-abstract class EventSystem<T : Event> (aspect: Aspect = Aspect()): System(aspect) {
+abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect) {
 
     constructor(
         allOf: AspectEntry = AspectEntry(),
@@ -112,7 +112,8 @@ abstract class EventSystem<T : Event> (aspect: Aspect = Aspect()): System(aspect
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
-        exclude = exclude)
+        exclude = exclude
+    )
 
     constructor(
         only: State,
@@ -120,14 +121,18 @@ abstract class EventSystem<T : Event> (aspect: Aspect = Aspect()): System(aspect
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
-        exclude = exclude)
+        exclude = exclude
+    )
 
-    constructor(only: KClass<out Component>): this(Aspect(only = only))
+    constructor(only: KClass<out Component>) : this(Aspect(only = only))
 
-    constructor(only: State): this(Aspect(only = only))
+    constructor(only: State) : this(Aspect(only = only))
 
     constructor() : this(AspectEntry())
 
+    open fun startActing() {}
+
+    open fun endActing() {}
 
     abstract fun eventFired(entity: EntityWrapper, event: T)
 

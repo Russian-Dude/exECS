@@ -63,10 +63,10 @@ abstract class System(val aspect: Aspect) {
 
     protected inline fun <reified T : System> inject() = SystemDelegate(T::class)
 
-    fun getEntitySingleton(cl: KClass<out SingletonEntity>) =
-        world.entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)]
+    fun <T : SingletonEntity> getEntitySingleton(cl: KClass<T>): T? =
+        world.entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)] as T?
 
-    inline fun <reified T : SingletonEntity> getEntitySingleton() = getEntitySingleton(T::class)
+    inline fun <reified T : SingletonEntity> getEntitySingleton(): T? = getEntitySingleton(T::class)
 
     protected fun <T : Component> EntityWrapper.getComponent(componentClass: KClass<T>): T? =
         world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] as T?

@@ -9,4 +9,8 @@ abstract class SimpleEventSystem<T: Event> : EventSystem<T>() {
 
     final override fun eventFired(entity: EntityWrapper, event: T) = eventFired(event)
 
+    final override fun startActing() {}
+
+    final override fun endActing() {}
+
 }
