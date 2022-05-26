@@ -7,7 +7,7 @@ internal class SingletonEntityIDsResolver {
 
     private val typeToId = ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(SingletonEntity::class)
         .withIndex()
-        .associate { (index, type) -> type to index }
+        .associate { (index, type) -> type to index + 1 }
 
     val typesAmount = typeToId.size
 

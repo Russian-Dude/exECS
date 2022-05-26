@@ -107,10 +107,10 @@ class World {
         entityMapper.addSingletonEntity(singletonEntity)
     }
 
-    fun getEntitySingleton(cl: KClass<out SingletonEntity>) =
-        entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)]
+    fun <T : SingletonEntity> getEntitySingleton(cl: KClass<T>): T? =
+        entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)] as T?
 
-    inline fun <reified T : SingletonEntity> getEntitySingleton() = getEntitySingleton(T::class)
+    inline fun <reified T : SingletonEntity> getEntitySingleton(): T? = getEntitySingleton(T::class)
 
     fun addSystem(system: System) {
         checkSystemCorrectness(system)
@@ -167,9 +167,9 @@ class World {
 
     inline fun <reified T : System> removeSystem() = removeSystem(T::class)
 
-    fun getSystem(ofType: KClass<out System>) = systems.find { it::class == ofType }
+    fun <T : System> getSystem(ofType: KClass<T>): T? = systems.find { it::class == ofType } as T?
 
-    inline fun <reified T : System> getSystem() = getSystem(T::class)
+    inline fun <reified T : System> getSystem(): T? = getSystem(T::class)
 
     fun clearEntities() {
         entityMapper.clear()

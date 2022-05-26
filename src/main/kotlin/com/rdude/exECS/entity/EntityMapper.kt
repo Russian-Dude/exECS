@@ -26,7 +26,7 @@ internal class EntityMapper(private var world: World) {
     private val reservedForSingletons = ExEcs.singletonEntityIDsResolver.typesAmount
 
     // Singleton instances
-    internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons) { null }
+    internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons + 1) { null }
 
     // Next free ID. Initially: dummy entity + reserved IDs for singletons
     internal var nextID: Int = 1 + reservedForSingletons
