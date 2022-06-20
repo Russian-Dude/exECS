@@ -17,4 +17,4 @@ inline fun <reified T : Poolable> fromPool(apply: T.() -> Unit): T = fromPool(T:
 
 /** Obtain [Poolable] from default [Pool] and configure it. If exECS compiler plugin is enabled,
  * calls to this method will be replaced with optimized generated calls at compile time */
-fun <T : Poolable> fromPool(kClass: KClass<T>, apply: T.() -> Unit): T = ExEcs.defaultPools[kClass].obtain() as T
+fun <T : Poolable> fromPool(kClass: KClass<T>, apply: T.() -> Unit): T = (ExEcs.defaultPools[kClass].obtain() as T).apply { apply() }
