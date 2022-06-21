@@ -2,10 +2,7 @@ package com.rdude.exECS.component.value
 
 import com.rdude.exECS.component.Component
 
-abstract class ShortComponent : Component, Comparable<ShortComponent> {
-
-    abstract var value: Short
-
+abstract class ShortComponent(open var value: Short = 0) : Component, Comparable<ShortComponent> {
 
     operator fun compareTo(other: Byte): Int = value.compareTo(other)
 
