@@ -1,6 +1,7 @@
 package com.rdude.exECS.aspect
 
 import com.rdude.exECS.component.ComponentPresenceChange
+import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.LongIterableArray
@@ -9,9 +10,13 @@ import com.rdude.exECS.world.World
 internal class SubscriptionsManager(val world: World) {
 
     private val subscriptions = IterableArray<EntitiesSubscription>()
+    private val subscriptionsByComponentType = Array(ExEcs.componentTypeIDsResolver.size) { IterableArray<EntitiesSubscription>() }
     private val componentPresenceChanges = LongIterableArray()
 
-    internal fun add(subscription: EntitiesSubscription) = subscriptions.add(subscription)
+    internal fun add(subscription: EntitiesSubscription) {
+        subscriptions.add(subscription)
+        subscription.componentTypeIDs.getTrueValues().forEach { subscriptionsByComponentType[it].add(subscription) }
+    }
 
     internal fun componentPresenceChange(change: ComponentPresenceChange) = componentPresenceChanges.add(change.data)
 
@@ -39,16 +44,13 @@ internal class SubscriptionsManager(val world: World) {
             val change = ComponentPresenceChange(c)
             val entityID = change.entityId()
             val componentTypeID = change.componentId()
-            for (subscription in subscriptions) {
-                if (subscription.isSubscribedToType(componentTypeID)) {
-                    val entityMatchAspect = subscription.isEntityMatchAspect(entityID, world.entityMapper)
-                    val hasEntity = subscription.hasEntities[entityID]
-                    if (!entityMatchAspect && hasEntity) {
-                        subscription.setHasNotEntity(entityID)
-                    }
-                    else if (entityMatchAspect && !hasEntity) {
-                        subscription.addEntity(entityID)
-                    }
+            for (subscription in subscriptionsByComponentType[componentTypeID]) {
+                val entityMatchAspect = subscription.isEntityMatchAspect(entityID, world.entityMapper)
+                val hasEntity = subscription.hasEntities[entityID]
+                if (!entityMatchAspect && hasEntity) {
+                    subscription.setHasNotEntity(entityID)
+                } else if (entityMatchAspect && !hasEntity) {
+                    subscription.addEntity(entityID)
                 }
             }
         }
