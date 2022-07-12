@@ -1,6 +1,5 @@
 package com.rdude.exECS.entity
 
-import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentMapper
 import com.rdude.exECS.event.EntityAddedEvent
@@ -11,70 +10,64 @@ import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.UnsafeBitSet
 import com.rdude.exECS.world.World
+import com.rdude.exECS.aspect.SubscriptionsManager
 
-internal class EntityMapper(private var world: World) {
+internal class EntityMapper(private var world: World, freshAddedEntitiesArray: IntIterableArray, freshRemovedEntitiesArray: IntArrayStackSet) {
 
-    // Current backing array size of component mappers
-    // Stored here to calculate new size only once and only when entity with id that exceeds current size is added
-    internal var componentMappersSize: Int = 16
+    /** Current backing array size of component mappers
+     * Stored here to calculate new size only once and only when entity with id that exceeds current size is added.*/
+    @JvmField internal var componentMappersSize: Int = 16
 
-    // Stores component mappers for every component type. Array index - component type id
-    internal val componentMappers: Array<ComponentMapper<*>> =
+    /** Stores component mappers for every component type. Array index - component type id.*/
+    @JvmField internal val componentMappers: Array<ComponentMapper<*>> =
         Array(ExEcs.componentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
 
-    // Amount of IDs reserved for singletons
+    /** Amount of IDs reserved for singletons.*/
     private val reservedForSingletons = ExEcs.singletonEntityIDsResolver.typesAmount
 
-    // Singleton instances
-    internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons + 1) { null }
+    /** Singleton instances.*/
+    @JvmField internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons + 1) { null }
 
-    // Next free ID. Initially: dummy entity + reserved IDs for singletons
-    internal var nextID: Int = 1 + reservedForSingletons
+    /** Next free ID. Initially: dummy entity + reserved IDs for singletons.*/
+    @JvmField internal var nextID: Int = 1 + reservedForSingletons
 
-    // Current entities amount. Initially: dummy entity
-    internal var size = 1
+    /** Current entities amount. Initially: dummy entity.*/
+    @JvmField internal var size = 1
 
-    // Grow bitsets at the same time as component mappers will grow
+    /** [UnsafeBitSet] does not contain logic to increase it backing array in order to reduce checks every time its
+     *  value is accessed. Since the size of [UnsafeBitSet]s containing information about entities directly depends on
+     *  the number of entities, and hence on the size of EntityMapper, the size of their backing arrays can be increased
+     *  simultaneously from here and only when needed.*/
     private val linkedBitSets = IterableArray<UnsafeBitSet>()
 
-    // Ids that can be reused
+    /** Ids that can be reused.*/
     private val emptyIds = IntArrayStackSet()
 
-    // Indexes of the backing array cells that will be cleared after actualize() call
-    // This array will be cleared only after all remove events fired
+    /** Indexes of the backing array cells that will be cleared after [removeRequested] call
+     * This array will be cleared only after all remove events fired.*/
     private val removeRequests = IntArrayStackSet()
 
-    // backing array indexes that subscribers don't know about removing yet
-    private val freshRemovedEntities = IntArrayStackSet()
+    /** Backing array indexes that subscribers don't know about removing yet.
+     * This array is shared with [SubscriptionsManager] which clears its contents ([SubscriptionsManager.freshRemovedEntities]).*/
+    private val freshRemovedEntities = freshRemovedEntitiesArray
 
-    // Indexes of the backing array containing entities not yet known to subscribers
-    private var freshAddedEntities = IntIterableArray()
+    /** Indexes of the backing array containing entities not yet known to subscribers.
+     * This array is shared with [SubscriptionsManager] which clears its contents ([SubscriptionsManager.freshAddedEntities]).*/
+    private val freshAddedEntities = freshAddedEntitiesArray
 
-    // Subscriptions that need to be notified when entities are added or removed
-    private var entitiesSubscriptions = IterableArray<EntitiesSubscription>()
+    @JvmField internal var sendEntityAddedEvents = false
+
+    @JvmField internal var sendEntityRemovedEvents = false
 
 
-    internal fun registerEntitiesSubscription(subscription: EntitiesSubscription) {
-        entitiesSubscriptions.add(subscription)
-        linkedBitSets.add(subscription.hasEntities)
-    }
 
-    internal fun notifySubscriptionsManager() {
-        val subscriptionsManager = world.subscriptionsManager
-        subscriptionsManager.handleEntitiesAdded(freshAddedEntities)
-        subscriptionsManager.handleEntitiesRemoved(freshRemovedEntities)
-        subscriptionsManager.handleComponentPresenceChanges()
-        subscriptionsManager.removeUnusedEntities()
-        freshRemovedEntities.clear()
-        freshAddedEntities.clear()
-        world.subscriptionsNeedToBeUpdated = false
-    }
+    internal fun linkEntityBitSet(bitSet: UnsafeBitSet) = linkedBitSets.add(bitSet)
 
-    // should only be called between world act calls
+    /** Rearrange IDs, removing the gaps. Should not be called while [World.isCurrentlyActing].*/
     internal fun rearrange() {
         if (emptyIds.isEmpty()) return
         var lastElementIndex = nextID - 1
-        for (emptyId in emptyIds.sortedDescending()) {
+        for (emptyId in emptyIds.backingArray.sortedDescending()) {
             if (lastElementIndex < reservedForSingletons) {
                 break
             }
@@ -85,14 +78,34 @@ internal class EntityMapper(private var world: World) {
             for (componentMapper in componentMappers) {
                 componentMapper.replaceId(lastElementIndex, emptyId)
             }
-            world.subscriptionsManager.moveEntity(lastElementIndex, emptyId)
+            world.subscriptionsManager.entityChangedId(lastElementIndex, emptyId)
             lastElementIndex--
         }
         nextID = lastElementIndex + 1
         emptyIds.clear()
     }
 
+    /** Creates an Entity with given Components.*/
+    fun create(components: Iterable<Component>) {
+        val id = create()
+        // add components to component mappers
+        components.forEach {
+            componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
+        }
+    }
+
+    /** Creates an Entity with given Components.*/
     fun create(components: Array<out Component>) {
+        val id = create()
+        // add components to component mappers
+        components.forEach {
+            componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
+        }
+    }
+
+    /** Creates an entity without components.
+     *  @return created Entity id*/
+    fun create(): Int {
         val id = if (emptyIds.isNotEmpty()) emptyIds.unsafePoll() else nextID
         if (id == nextID) nextID++ // can poll nextID from empty ids
         size++
@@ -102,18 +115,17 @@ internal class EntityMapper(private var world: World) {
             componentMappers.forEach { it.grow(componentMappersSize) }
             linkedBitSets.forEach { it.growIfNeeded(componentMappersSize) }
         }
-        // add components to component mappers
-        components.forEach {
-            componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
-        }
         // add to fresh entities
         freshAddedEntities.add(id)
         // queue event
-        val event = EntityAddedEvent.pool.obtain()
-        event.entity = EntityWrapper(id)
-        event.entityAsSingleton = null
-        world.queueInternalEvent(event)
+        if (sendEntityAddedEvents) {
+            val event = EntityAddedEvent.pool.obtain()
+            event.entity = Entity(id)
+            event.entityAsSingleton = null
+            world.queueEvent(event)
+        }
         world.internalChangeOccurred = true
+        return id
     }
 
     fun addSingletonEntity(singletonEntity: SingletonEntity) {
@@ -124,22 +136,37 @@ internal class EntityMapper(private var world: World) {
         // add to fresh entities
         freshAddedEntities.add(entityID)
         // queue event
-        val event = EntityAddedEvent.pool.obtain()
-        event.entity = EntityWrapper(entityID)
-        event.entityAsSingleton = singletonEntity
-        world.queueInternalEvent(event)
+        if (sendEntityAddedEvents) {
+            val event = EntityAddedEvent.pool.obtain()
+            event.entity = Entity(entityID)
+            event.entityAsSingleton = singletonEntity
+            world.queueEvent(event)
+        }
         world.internalChangeOccurred = true
     }
 
+    /** Requests to remove the entity.
+     *  Due to the fact that after removing an entity, its ID may be taken by another entity, in order to maintain the
+     *  constancy of entity IDs throughout the execution of the [World.act] method, the actual removing of all requested
+     *  entities occurs at the beginning of the [World.act] method using the [removeRequested] method.*/
     fun requestRemove(id: Int) {
         val requestAdded = removeRequests.add(id)
-        if (!requestAdded) return
+        if (!requestAdded) return // removing of this entity may already be requested
         freshRemovedEntities.add(id)
-        val event = EntityRemovedEvent.pool.obtain()
-        event.entity = EntityWrapper(id)
-        event.entityAsSingleton = if (id >= reservedForSingletons) null else singletons[id]
-        world.queueInternalEvent(event)
+        if (sendEntityRemovedEvents) {
+            val event = EntityRemovedEvent.pool.obtain()
+            event.entity = Entity(id)
+            event.entityAsSingleton = if (id >= reservedForSingletons) null else singletons[id]
+            world.queueEvent(event)
+        }
         world.internalChangeOccurred = true
+    }
+
+    /** Performs remove requests that were created by the [requestRemove] method.*/
+    fun removeRequested() {
+        // remove requests
+        removeRequests.forEach { remove(it) }
+        removeRequests.clear()
     }
 
     private fun remove(id: Int) {
@@ -147,8 +174,6 @@ internal class EntityMapper(private var world: World) {
         val isNotSingleton = id >= reservedForSingletons
         if (isNotSingleton) {
             emptyIds.add(id)
-        }
-        if (isNotSingleton) {
             componentMappers.forEach { it.removeComponentSilently(id) }
         }
         else {
@@ -156,22 +181,11 @@ internal class EntityMapper(private var world: World) {
         }
     }
 
-    fun actualize() {
-        // remove requests
-        for (removeRequest in removeRequests) {
-            remove(removeRequest)
-        }
-        removeRequests.clear()
-    }
-
     fun clear() {
         componentMappers.forEach { it.clear() }
         removeRequests.clear()
         freshAddedEntities.clear()
         freshRemovedEntities.clear()
-        for (subscription in entitiesSubscriptions) {
-            subscription.clearEntities()
-        }
         world.internalChangeOccurred = true
     }
 

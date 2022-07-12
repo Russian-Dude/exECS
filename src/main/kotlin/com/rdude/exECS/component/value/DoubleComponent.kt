@@ -1,7 +1,17 @@
 package com.rdude.exECS.component.value
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.observable.ObservableDoubleComponent
 
+/** Component representing some [Double] value. Allows to perform some actions directly on the component without the need
+ *  to access the value.
+ * ```
+ * myComponent += 71.7 // math operators with primitives
+ * myComponent /= myAnotherComponent // math operators with another primitive components
+ * maxOf(myComponent, myAnotherComponent) // comparable by value
+ * 0.0..myComponent // creating ranges
+ * ```
+ * @see [ObservableDoubleComponent]*/
 abstract class DoubleComponent(open var value: Double = 0.0) : Component, Comparable<DoubleComponent> {
 
     operator fun compareTo(other: Byte): Int = value.compareTo(other)

@@ -2,7 +2,7 @@ package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.PoolableComponent
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.pool.ConstructorForDefaultPool
 import com.rdude.exECS.pool.Pool
@@ -12,7 +12,6 @@ import com.rdude.exECS.system.ActingSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import kotlin.reflect.full.findAnnotation
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PoolablesTest {
@@ -26,13 +25,13 @@ class PoolablesTest {
     class SimplePoolableComponent2 : PoolableComponent
 
     private inner class EntityRemoverSystem : ActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
-        override fun act(entity: EntityWrapper, delta: Double) {
+        override fun act(entity: Entity, delta: Double) {
             entity.remove()
         }
     }
 
     private inner class ComponentRemoverSystem : ActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
-        override fun act(entity: EntityWrapper, delta: Double) {
+        override fun act(entity: Entity, delta: Double) {
             entity.removeComponent<SimplePoolableComponent>()
             entity.removeComponent<SimplePoolableComponent2>()
         }

@@ -1,17 +1,19 @@
 package com.rdude.exECS.world
 
-import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.component.ComponentPresenceChange
-import com.rdude.exECS.component.PoolableComponent
+import com.rdude.exECS.component.ComponentChange
+import com.rdude.exECS.component.ObservableComponent
+import com.rdude.exECS.component.ObservableComponentChangeManager
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.ActingEvent
+import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.event.EventBus
-import com.rdude.exECS.event.InternalEvent
+import com.rdude.exECS.exception.EmptyEntityException
 import com.rdude.exECS.pool.Poolable
+import com.rdude.exECS.pool.PoolablesManager
 import com.rdude.exECS.pool.fromPool
 import com.rdude.exECS.serialization.SimpleWorldSnapshot
 import com.rdude.exECS.serialization.SimpleWorldSnapshotGenerator
@@ -19,6 +21,9 @@ import com.rdude.exECS.serialization.WorldSnapshot
 import com.rdude.exECS.serialization.WorldSnapshotGenerator
 import com.rdude.exECS.system.*
 import com.rdude.exECS.utils.ExEcs
+import com.rdude.exECS.utils.collections.ComponentTypeToEntityPair
+import com.rdude.exECS.utils.collections.IntArrayStackSet
+import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import kotlin.reflect.KClass
 
@@ -28,39 +33,50 @@ class World {
         ExEcs.initializeIfNeeded()
     }
 
-    internal val systems = IterableArray<System>()
+    @JvmField internal val subscriptionsManager: SubscriptionsManager
 
-    internal val entityMapper = EntityMapper(this)
+    @JvmField internal val entityMapper: EntityMapper
 
-    internal val actingEvent = ActingEvent(0.0)
+    init {
+        val freshRemovedEntitiesArray = IntArrayStackSet()
+        val freshAddedEntitiesArray = IntIterableArray()
+        subscriptionsManager = SubscriptionsManager(this, freshAddedEntitiesArray, freshRemovedEntitiesArray)
+        entityMapper = EntityMapper(this, freshAddedEntitiesArray, freshRemovedEntitiesArray)
+    }
 
-    internal val eventBus = EventBus(actingEvent, this)
+    @JvmField internal val systems = IterableArray<System>()
 
-    internal val subscriptionsManager = SubscriptionsManager(this)
+    @JvmField internal val actingEvent = ActingEvent(0.0)
+
+    @JvmField internal val eventBus = EventBus(this)
+
+    @JvmField internal val observableComponentChangeManager = ObservableComponentChangeManager(this)
+
+    @JvmField internal val poolablesManager = PoolablesManager()
 
     internal var internalChangeOccurred = false
         set(value) {
             field = value
-            if (value) subscriptionsNeedToBeUpdated = true
+            if (value) subscriptionsManager.updateRequired = true
         }
-
-    internal var subscriptionsNeedToBeUpdated = false
-
-    internal val poolablesToReturn = IterableArray<Poolable>()
 
     var isCurrentlyActing = false
         private set
 
 
-
     fun act(delta: Double) {
         isCurrentlyActing = true
-        internalChanges()
-        // set delta of main events
+        // changes could have occurred outside of act method call, in which case subscriptions should be updated first.
+        updateSubscriptions()
         actingEvent.delta = delta
-        // fire events
+        eventBus.queueEvent(actingEvent)
         eventBus.fireEvents()
-        internalChanges()
+        if (internalChangeOccurred) {
+            updateSubscriptions()
+            entityMapper.removeRequested()
+            poolablesManager.returnPoolablesToPoolIfNeeded()
+            internalChangeOccurred = false
+        }
         isCurrentlyActing = false
     }
 
@@ -71,21 +87,32 @@ class World {
     inline fun <reified T> queueEvent(apply: T.() -> Unit) where T : Event, T : Poolable =
         queueEvent(fromPool<T>().apply { apply.invoke(this) })
 
-    internal fun queueInternalEvent(event: InternalEvent) = eventBus.queueInternalEvent(event)
-
-    internal fun componentPresenceChange(change: ComponentPresenceChange) =
-        subscriptionsManager.componentPresenceChange(change)
-
-    fun createEntity(vararg components: Component) {
-        if (components.isEmpty()) {
-            throw IllegalArgumentException("Entity must have at least one component")
-        }
+    /** Creates an Entity with given components. At least one component must be passed to the arguments.
+     * @throws [EmptyEntityException] if no components have been passed.*/
+    fun createEntity(components: Iterable<Component>) {
+        components.firstOrNull() ?: throw EmptyEntityException()
         entityMapper.create(components)
     }
 
+    /** Creates an Entity with given components. At least one component must be passed to the arguments.
+     * @throws [EmptyEntityException] if no components have been passed.*/
+    fun createEntity(vararg components: Component) {
+        if (components.isEmpty()) throw EmptyEntityException()
+        entityMapper.create(components)
+    }
+
+
+    /** Creates the specified amount of Entities that will share the given [Component]s.
+     * @throws [EmptyEntityException] if no components have been passed.*/
     fun createEntitiesWithSameComponents(amount: Int, vararg components: Component) {
         for (i in 0 until amount) {
             createEntity(*components)
+        }
+    }
+
+    fun createEntitiesWithSameComponents(amount: Int, components: Iterable<Component>) {
+        for (i in 0 until amount) {
+            createEntity(components)
         }
     }
 
@@ -95,7 +122,9 @@ class World {
         }
     }
 
-    internal fun removeEntity(id: Int) = entityMapper.requestRemove(id)
+    fun createEntities(amount: Int, components: Iterable<(Int) -> Component>) {
+        createEntity(components.mapIndexed { index, function -> function(index) })
+    }
 
     fun addSingletonEntity(singletonEntity: SingletonEntity) {
         if (singletonEntity.isWorldInitialized && singletonEntity.world != this) {
@@ -117,28 +146,7 @@ class World {
         system.registered = true
         systems.add(system)
         system.setWorld(this)
-
-        // share same entities subscriptions instances between systems with equals aspect
-        var subscriptionsCopied = false
-        for (otherSystem in systems) {
-            if (otherSystem !== system && system.aspect == otherSystem.aspect) {
-                system.entitiesSubscription = otherSystem.entitiesSubscription
-                subscriptionsCopied = true
-                break
-            }
-        }
-        if (!subscriptionsCopied) {
-            val subscription = EntitiesSubscription(system.aspect)
-            for (entityId in 0 until entityMapper.nextID) {
-                if (subscription.isEntityMatchAspect(entityId, entityMapper)) {
-                    subscription.addEntity(entityId)
-                }
-            }
-            system.entitiesSubscription = subscription
-            entityMapper.registerEntitiesSubscription(system.entitiesSubscription)
-            subscriptionsManager.add(subscription)
-        }
-
+        subscriptionsManager.registerSystem(system)
         if (system is EventSystem<*>) {
             eventBus.registerSystem(system)
         }
@@ -154,31 +162,28 @@ class World {
         }
     }
 
-    fun removeSystem(ofType: KClass<out System>) {
-        var toRemove: System? = null
-        for (system in systems) {
-            if (system::class == ofType) {
-                toRemove = system
-                break
-            }
-        }
-        if (toRemove != null) removeSystem(toRemove)
-    }
+    fun removeSystem(ofType: KClass<out System>) =
+        systems.firstOrNull { it::class == ofType }
+            ?.let { removeSystem(it) }
 
     inline fun <reified T : System> removeSystem() = removeSystem(T::class)
 
-    fun <T : System> getSystem(ofType: KClass<T>): T? = systems.find { it::class == ofType } as T?
+    fun <T : System> getSystem(ofType: KClass<T>): T? = systems.firstOrNull { it::class == ofType } as T?
 
     inline fun <reified T : System> getSystem(): T? = getSystem(T::class)
 
+    /** Removes all entities. [EntityRemovedEvent]s will not be called.*/
     fun clearEntities() {
         entityMapper.clear()
+        subscriptionsManager.unsubscribeAll()
     }
 
-    /** Rearrange entity IDs to eliminate potential gaps that could be caused by unused IDs.*/
+    /** Rearrange entity IDs to eliminate potential gaps that could be caused by unused IDs.
+     * @throws [IllegalStateException] if called during the [act] method execution.*/
     fun rearrange() {
-        if (isCurrentlyActing) throw IllegalStateException("Can not rearrange world while acting")
-
+        if (isCurrentlyActing) throw IllegalStateException("World can not be rearranged while it is acting")
+        updateSubscriptions()
+        entityMapper.removeRequested()
         entityMapper.rearrange()
     }
 
@@ -188,6 +193,16 @@ class World {
     }
 
     fun snapshot(): SimpleWorldSnapshot = SimpleWorldSnapshotGenerator.generate(this)
+
+    internal fun updateSubscriptions() = subscriptionsManager.updateSubscriptions()
+
+    internal fun componentPresenceChange(change: ComponentTypeToEntityPair) =
+        subscriptionsManager.componentChanged(change)
+
+    internal fun <T : ComponentChange> componentChanged(component: ObservableComponent<T>, change: T) =
+        observableComponentChangeManager.componentChanged(component, change)
+
+    internal fun requestRemoveEntity(id: Int) = entityMapper.requestRemove(id)
 
     private fun checkSystemCorrectness(system: System) {
         if (system.registered) {
@@ -202,36 +217,8 @@ class World {
             val needName =
                 if (system is ActingSystem) SimpleActingSystem::class.simpleName else SimpleEventSystem::class.simpleName
             throw IllegalStateException(
-                "System ${system::class} has no components in aspect. To use $usedName without components in aspect, use $needName instead of $usedName"
+                "System ${system::class} has no components in aspect. To use $usedName without components in aspect, extend from $needName instead of $usedName"
             )
-        }
-    }
-
-    private fun removePoolablesToPoolIfNeeded() {
-        var returned = false
-        poolablesToReturn.iterate(
-            onEach = {
-                if (it is Component && ((it as? PoolableComponent)?.insideEntities ?: PoolableComponent.componentsToInsideEntitiesAmount[it]) == 0) {
-                    it.returnToPool()
-                    returned = true
-                }
-                else returned = false
-            },
-            removeIf = { returned }
-        )
-    }
-
-    internal fun internalChanges() {
-        while (internalChangeOccurred) {
-            internalChangeOccurred = false
-            // update systems' entities
-            entityMapper.notifySubscriptionsManager()
-            // fire entity added/removed and component added/removed events
-            eventBus.fireInternalEvents()
-            // actualize data
-            entityMapper.actualize()
-            // remove poolables to pool
-            removePoolablesToPoolIfNeeded()
         }
     }
 

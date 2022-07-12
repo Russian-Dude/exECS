@@ -1,7 +1,7 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.State
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.system.ActingSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.BeforeAll
@@ -17,14 +17,14 @@ class StateTest {
 
     private inner class System1 : ActingSystem(only = state) {
         var state: State? = null
-        override fun act(entity: EntityWrapper, delta: Double) {
+        override fun act(entity: Entity, delta: Double) {
             state = entity.getComponent<TestState>()
         }
     }
 
     private inner class System2 : ActingSystem(only = TestState::class) {
         var state: State? = null
-        override fun act(entity: EntityWrapper, delta: Double) {
+        override fun act(entity: Entity, delta: Double) {
             state = entity.getComponent<TestState>()
         }
     }

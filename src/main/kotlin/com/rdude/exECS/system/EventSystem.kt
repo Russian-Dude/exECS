@@ -2,9 +2,9 @@ package com.rdude.exECS.system
 
 import com.rdude.exECS.aspect.Aspect
 import com.rdude.exECS.aspect.AspectEntry
+import com.rdude.exECS.aspect.AspectEntryElement
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.component.State
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.Event
 import kotlin.reflect.KClass
 
@@ -31,7 +31,7 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
     constructor(
         allOf: AspectEntry = AspectEntry(),
         anyOf: AspectEntry = AspectEntry(),
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(allOf = allOf, anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
@@ -41,7 +41,7 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
-        allOf: State,
+        allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
         exclude: KClass<out Component>
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
@@ -49,13 +49,13 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
     constructor(
         allOf: KClass<out Component>,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
-        allOf: State,
+        allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
@@ -65,7 +65,7 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude)
 
     constructor(
-        allOf: State,
+        allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
         exclude: AspectEntry = AspectEntry()
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude)
@@ -80,7 +80,7 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
     )
 
     constructor(
-        only: State,
+        only: AspectEntryElement,
         exclude: KClass<out Component>
     ) : this(
         allOf = AspectEntry(),
@@ -90,7 +90,7 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
 
     constructor(
         only: KClass<out Component>,
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
@@ -98,8 +98,8 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
     )
 
     constructor(
-        only: State,
-        exclude: State
+        only: AspectEntryElement,
+        exclude: AspectEntryElement
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
@@ -116,7 +116,7 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
     )
 
     constructor(
-        only: State,
+        only: AspectEntryElement,
         exclude: AspectEntry = AspectEntry()
     ) : this(
         allOf = AspectEntry(),
@@ -126,19 +126,19 @@ abstract class EventSystem<T : Event>(aspect: Aspect = Aspect()) : System(aspect
 
     constructor(only: KClass<out Component>) : this(Aspect(only = only))
 
-    constructor(only: State) : this(Aspect(only = only))
+    constructor(only: AspectEntryElement) : this(Aspect(only = only))
 
     constructor() : this(AspectEntry())
 
-    open fun startActing() {}
+    open fun beforeActing() {}
 
-    open fun endActing() {}
+    open fun afterActing() {}
 
-    abstract fun eventFired(entity: EntityWrapper, event: T)
+    abstract fun eventFired(entity: Entity, event: T)
 
     internal fun fireEvent(event: T) {
-        for (id in entitiesSubscription.entityIDs) {
-            eventFired(EntityWrapper(id), event)
+        entitiesSubscription.entityIDs.forEach {
+            eventFired(Entity(it), event)
         }
     }
 

@@ -1,7 +1,7 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.system.ActingSystem
 import com.rdude.exECS.world.World
@@ -19,7 +19,7 @@ class SingletonsTest {
 
     class TestSystem : ActingSystem(only = TestComponent::class) {
         var foundComponent: TestComponent? = null
-        override fun act(entity: EntityWrapper, delta: Double) {
+        override fun act(entity: Entity, delta: Double) {
             foundComponent = entity.getComponent()
         }
     }

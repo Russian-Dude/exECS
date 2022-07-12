@@ -1,7 +1,17 @@
 package com.rdude.exECS.component.value
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.observable.ObservableLongComponent
 
+/** Component representing some [Long] value. Allows to perform some actions directly on the component without the need
+ *  to access the value.
+ * ```
+ * myComponent += 717 // math operators with primitives
+ * myComponent /= myAnotherComponent // math operators with another primitive components
+ * maxOf(myComponent, myAnotherComponent) // comparable by value
+ * 0..myComponent // creating ranges
+ * ```
+ * @see [ObservableLongComponent]*/
 abstract class LongComponent(open var value: Long = 0L) : Component, Comparable<LongComponent> {
 
     operator fun compareTo(other: Byte): Int = value.compareTo(other)

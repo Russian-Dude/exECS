@@ -1,7 +1,7 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.serialization.SimpleWorldSnapshot
 import com.rdude.exECS.system.ActingSystem
@@ -21,7 +21,7 @@ class SimpleWorldSnapshotTest {
     class TestEvent1 : Event
 
     class TestSystem1 : ActingSystem(anyOf = TestComponent1::class and TestComponent2::class) {
-        override fun act(entity: EntityWrapper, delta: Double) {}
+        override fun act(entity: Entity, delta: Double) {}
     }
 
     class TestSystem2 : SimpleEventSystem<TestEvent1>() {
@@ -43,7 +43,7 @@ class SimpleWorldSnapshotTest {
         world.act(0.0)
         world.queueEvent(TestEvent1())
         snapshot1 = world.snapshot()
-        world.systems.toList().forEach { world.removeSystem(it) }
+        world.systems.backingArray.toList().filterNotNull().forEach { world.removeSystem(it) }
         snapshot2 = World(snapshot1).snapshot()
     }
 
@@ -63,11 +63,6 @@ class SimpleWorldSnapshotTest {
                 mapperSnapshot.data.contentEquals(snapshot2.componentMappers[index].data)
             }
         )
-    }
-
-    @Test
-    fun eventsEquals() {
-        assert(snapshot1.events.toTypedArray().contentEquals(snapshot2.events.toTypedArray()))
     }
 
     @Test

@@ -1,120 +1,174 @@
 package com.rdude.exECS.aspect
 
-import com.rdude.exECS.component.State
+import com.rdude.exECS.component.*
 import com.rdude.exECS.entity.EntityMapper
+import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.Dummies
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.UnsafeBitSet
+import com.rdude.exECS.utils.componentTypeId
+import com.rdude.exECS.world.World
 
-/**
- * Entities subscription can be shared between different systems with equal aspect.
- */
-internal class EntitiesSubscription(aspect: Aspect) {
+/** Stores the entities to which it is subscribed and the requirements for the entities that they must meet in order
+ * to be subscribed to them.
+ *
+ * Entities subscription is shared between different [System]s with equal [Aspect] in the same [World].*/
+internal class EntitiesSubscription(world: World, aspect: Aspect) {
 
-    // Entities to iterate through each world's iteration
-    internal var entityIDs = IntIterableArray()
+    /** This subscription can be subscribed to an entities contained in this [EntityMapper].*/
+    private val entityMapper = world.entityMapper
 
-    // Fast way to check if this subscription is subscribed to an entity
-    internal var hasEntities = UnsafeBitSet()
+    /** Entities ids to which this instance is subscribed.*/
+    @JvmField internal var entityIDs = IntIterableArray()
 
-    // IDs of component types that are relevant for this subscription
-    private var componentTypeIDs = UnsafeBitSet(ExEcs.componentTypeIDsResolver.size)
+    /** Fast way to check if this subscription is subscribed to an entity.*/
+    @JvmField internal var hasEntities = UnsafeBitSet()
 
-    // If presence of entities was not changed there is no need to remove unused entities
+    /** IDs of component types that are relevant for this subscription.*/
+    @JvmField internal var componentTypeIDs = UnsafeBitSet(ExEcs.componentTypeIDsResolver.size)
+
+    /** Marking that at least one entity has been removed from the [World] and must be unsubscribed.*/
     private var hasRemoveRequests = false
 
-    // Simple subscription is subscribed to only dummy entity
+    /** Simple subscription is subscribed only to [Dummies.DUMMY_ENTITY_ID].*/
     private val isSimpleSubscription: Boolean
 
-    // Aspect properties mapped to component type ids
+
+    /** To be subscribed to an entity, it must have any of these component types (by id).*/
     private val anyOfByType: IntIterableArray
+
+    /** To be subscribed to an entity, it must have all of these component types (by id).*/
     private val allOfByType: IntIterableArray
+
+    /** To be subscribed to an entity, it must have none of these component types (by id).*/
     private val excludeByType: IntIterableArray
 
-    // States aspect properties
+
+    /** To be subscribed to an entity, it must have a state that equals to any of these states.*/
     private val anyOfByState: IterableArray<State>
+
+    /** To be subscribed to an entity, it must have states that equal to all of these states.*/
     private val allOfByState: IterableArray<State>
+
+    /** To be subscribed to an entity, it must not have a state that equals to any of these states.*/
     private val excludeByState: IterableArray<State>
 
-    // Perform is entity match aspect checks, only on non-empty aspect entries
+
+    /** To be subscribed to an entity, it must have a component that matches any of these conditions.*/
+    private val anyOfComponentConditions: IterableArray<ComponentCondition<*>>
+
+    /** To be subscribed to an entity, it must have components that match all of these conditions.*/
+    private val allOfComponentConditions: IterableArray<ComponentCondition<*>>
+
+    /** To be subscribed to an entity, it must not have any component that matches any of these conditions.*/
+    private val excludeComponentConditions: IterableArray<ComponentCondition<*>>
+
+
+    /** The checks that need to be made to determine if an entity can be subscribed to by this subscription.*/
     private val entityMatchChecks: IterableArray<Check> = IterableArray()
 
     init {
+        // this is simple subscription if no entity can be subscribed by this subscription
         isSimpleSubscription = aspect.anyOf.isEmpty() && aspect.allOf.isEmpty()
 
-        val anyOfTypeIds = aspect.anyOf.simpleComponents.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
+        val anyOfTypeIds = aspect.anyOf.types.map { it.componentTypeId }.toIntArray()
         anyOfByType = IntIterableArray(true, *anyOfTypeIds)
         anyOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        anyOfByState = IterableArray(true, *aspect.anyOf.stateComponents.toTypedArray())
+        anyOfByState = IterableArray(true, *aspect.anyOf.states.toTypedArray())
         anyOfByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
 
-        val allOfTypeIds = aspect.allOf.simpleComponents.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
+        anyOfComponentConditions = IterableArray(true, *aspect.anyOf.conditions.toTypedArray())
+        anyOfComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
+
+        val allOfTypeIds = aspect.allOf.types.map { it.componentTypeId }.toIntArray()
         allOfByType = IntIterableArray(true, *allOfTypeIds)
         allOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        allOfByState = IterableArray(true, *aspect.allOf.stateComponents.toTypedArray())
+        allOfByState = IterableArray(true, *aspect.allOf.states.toTypedArray())
         allOfByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
 
-        val excludeTypeIds = aspect.exclude.simpleComponents.map { ExEcs.componentTypeIDsResolver.idFor(it) }.toIntArray()
+        allOfComponentConditions = IterableArray(true, *aspect.allOf.conditions.toTypedArray())
+        allOfComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
+
+        val excludeTypeIds = aspect.exclude.types.map { it.componentTypeId }.toIntArray()
         excludeByType = IntIterableArray(true, *excludeTypeIds)
         excludeTypeIds.forEach { componentTypeIDs[it] = true }
 
-        excludeByState = IterableArray(true, *aspect.exclude.stateComponents.toTypedArray())
+        excludeByState = IterableArray(true, *aspect.exclude.states.toTypedArray())
         excludeByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
+
+        excludeComponentConditions = IterableArray(true, *aspect.exclude.conditions.toTypedArray())
+        excludeComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
 
         if (excludeByType.isNotEmpty()) entityMatchChecks.add(CheckExcludeType())
         if (excludeByState.isNotEmpty()) entityMatchChecks.add(CheckExcludeState())
+        if (excludeComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckExcludeComponentCondition())
         if (anyOfByType.isNotEmpty()) entityMatchChecks.add(CheckAnyOfType())
         if (anyOfByState.isNotEmpty()) entityMatchChecks.add(CheckAnyOfState())
+        if (anyOfComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckAnyOfComponentCondition())
         if (allOfByType.isNotEmpty()) entityMatchChecks.add(CheckAllOfType())
         if (allOfByState.isNotEmpty()) entityMatchChecks.add(CheckAllOfState())
+        if (allOfComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckAllOfComponentCondition())
     }
 
-    fun isSubscribedToType(typeID: Int) = componentTypeIDs[typeID]
 
-    fun isEntityMatchAspect(entityID: Int, entityMapper: EntityMapper): Boolean {
-        if (isSimpleSubscription) {
-            return entityID == Dummies.DUMMY_ENTITY_ID
+    /** Subscribes, marks to unsubscribe, or retains a subscription to the entity, depending on whether the entity meets the requirements.*/
+    fun updateSubscription(entityID: Int) {
+        val entityMatch = checkEntityMatch(entityID)
+        val hasEntity = hasEntities[entityID]
+        if (!entityMatch && hasEntity) {
+            markToUnsubscribe(entityID)
+        } else if (entityMatch && !hasEntity) {
+            forceSubscribe(entityID)
         }
-        for (entityMatchCheck in entityMatchChecks) {
-            if (!entityMatchCheck.check(entityID, entityMapper)) return false
-        }
-        return true
     }
 
-    fun setHasNotEntity(entityID: Int) {
-        hasEntities.clear(entityID)
+    /** Marks the entity to be unsubscribed from this subscription.
+     * To finally unsubscribe marked entities [unsubscribeMarked] method should be called.
+     * In order to instantly unsubscribe the entity [forceUnsubscribe] method can be called instead.*/
+    fun markToUnsubscribe(entityId: Int) {
+        hasEntities.clear(entityId)
         hasRemoveRequests = true
     }
 
-    fun removeUnusedEntities() {
+    /** Unsubscribes from the entities that are marked to be unsubscribed.*/
+    fun unsubscribeMarked() {
         if (!hasRemoveRequests) return
-        for (id in entityIDs) {
-            if (!hasEntities[id]) {
-                entityIDs.removeIteratingElement()
-            }
-        }
+        entityIDs.removeIf { !hasEntities[it] }
         hasRemoveRequests = false
     }
 
-    fun instantlyRemoveEntity(id: Int) {
-        hasEntities.clear(id)
-        entityIDs.remove(id)
+    /** Instantly unsubscribe from the entity.*/
+    fun forceUnsubscribe(entityId: Int) {
+        hasEntities.clear(entityId)
+        entityIDs.remove(entityId)
     }
 
-    fun addEntity(id: Int) {
-        entityIDs.add(id)
-        hasEntities.set(id)
+    /** Subscribes to the entity if it is meets the requirements.*/
+    fun tryToSubscribe(entityID: Int) {
+        if (checkEntityMatch(entityID)) forceSubscribe(entityID)
     }
 
-    fun clearEntities() {
+    /** Subscribes to the entity without check whether the entity meets the requirements.*/
+    fun forceSubscribe(entityId: Int) {
+        entityIDs.add(entityId)
+        hasEntities.set(entityId)
+    }
+
+    /** Unsubscribes from all entities.*/
+    fun unsubscribeAll() {
         entityIDs.clear()
         hasEntities.clear()
         hasRemoveRequests = false
     }
+
+    /** Checks whether the entity meets the requirements of this subscription.*/
+    fun checkEntityMatch(entityID: Int): Boolean =
+        if (isSimpleSubscription) entityID == Dummies.DUMMY_ENTITY_ID
+        else entityMatchChecks.all { it.check(entityID, entityMapper) }
 
 
     private interface Check {
@@ -122,61 +176,70 @@ internal class EntitiesSubscription(aspect: Aspect) {
     }
 
     private inner class CheckExcludeType : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
-            for (typeId in excludeByType) {
-                if (entityMapper.componentMappers[typeId][entityID] != null) return false
-            }
-            return true
-        }
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            excludeByType.none { entityMapper.componentMappers[it][entityID] != null }
     }
 
     private inner class CheckExcludeState : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
-            for (state in excludeByState) {
-                if (entityMapper.componentMappers[state.getComponentTypeId()][entityID] == state) return false
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            excludeByState.none { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+    }
+
+    private inner class CheckExcludeComponentCondition : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            excludeComponentConditions.none {
+                val component = entityMapper.componentMappers[it.componentClass.componentTypeId][entityID]
+                if (component == null) false else it.unsafeTest(component)
             }
-            return true
-        }
     }
 
     private inner class CheckAnyOfType : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
-            for (typeId in anyOfByType) {
-                if (entityMapper.componentMappers[typeId][entityID] != null) {
-                    return true
-                }
-            }
-            return false
-        }
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            anyOfByType.any { entityMapper.componentMappers[it][entityID] != null }
     }
 
     private inner class CheckAnyOfState : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
-            for (state in anyOfByState) {
-                if (entityMapper.componentMappers[state.getComponentTypeId()][entityID] == state) {
-                    return true
-                }
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            anyOfByState.any { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+    }
+
+    private inner class CheckAnyOfComponentCondition : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            anyOfComponentConditions.any {
+                val component = entityMapper.componentMappers[it.componentClass.componentTypeId][entityID]
+                if (component == null) false else it.unsafeTest(component)
             }
-            return false
-        }
     }
 
     private inner class CheckAllOfType : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
-            for (typeId in allOfByType) {
-                if (entityMapper.componentMappers[typeId][entityID] == null) return false
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            allOfByType.all { entityMapper.componentMappers[it][entityID] != null }
+    }
+
+    private inner class CheckAllOfComponentCondition : Check {
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            allOfComponentConditions.all {
+                val component = entityMapper.componentMappers[it.componentClass.componentTypeId][entityID]
+                if (component == null) false else it.unsafeTest(component)
             }
-            return true
-        }
     }
 
     private inner class CheckAllOfState : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean {
-            for (state in allOfByState) {
-                if (entityMapper.componentMappers[state.getComponentTypeId()][entityID] != state) return false
-            }
-            return true
-        }
+        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+            allOfByState.all { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+    }
+
+
+    // both methods below used to hack compiler errors
+    private inline fun ComponentCondition<*>.unsafeTest(component: Component): Boolean {
+        component as ObservableComponent<*>?
+        component as CanBeObservedBySystem?
+        return component.unsafeTestByCondition(this)
+    }
+
+    private inline fun <T> T.unsafeTestByCondition(condition: ComponentCondition<*>): Boolean where T : ObservableComponent<*>, T : CanBeObservedBySystem {
+        condition as ComponentCondition<T>
+        return condition.test(this)
     }
 
 }

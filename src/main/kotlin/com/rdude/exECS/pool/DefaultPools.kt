@@ -1,5 +1,7 @@
 package com.rdude.exECS.pool
 
+import com.rdude.exECS.exception.DefaultPoolCanNotBeCreatedException
+import com.rdude.exECS.exception.DefaultPoolNotExistException
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.hasAnnotation
@@ -10,28 +12,33 @@ import kotlin.reflect.jvm.isAccessible
 internal class DefaultPools {
 
     /** This map is used to store Pools only for those Poolable subclasses that were compiled without exECS plugin.*/
-    private val defaultPools: MutableMap<KClass<out Poolable>, Pool<Poolable>> = HashMap()
+    private val defaultPools: MutableMap<KClass<out Poolable>, Pool<Poolable>?> = HashMap()
 
     /** This map is used to store Pools only for those Poolable subclasses instances that were compiled without exECS plugin.*/
-    internal val customPools: MutableMap<Poolable, Pool<Poolable>> = HashMap()
+    internal val customPools: MutableMap<Poolable, Pool<Poolable>?> = HashMap()
 
-    operator fun get(kClass: KClass<out Poolable>) = defaultPool(kClass)
+    internal operator fun get(kClass: KClass<out Poolable>) = defaultPool(kClass) ?: throw DefaultPoolNotExistException(kClass)
 
-    operator fun set(kClass: KClass<out Poolable>, pool: Pool<Poolable>) = defaultPools.put(kClass, pool)
+    internal operator fun set(kClass: KClass<out Poolable>, pool: Pool<Poolable>) = defaultPools.put(kClass, pool)
 
-    /** Get default [Pool] for requested Poolable type.*/
+    /** Get default [Pool] for requested Poolable type.
+     * @throws DefaultPoolCanNotBeCreatedException
+     * @throws DefaultPoolNotExistException*/
     internal inline fun <reified T : Poolable> defaultPool() = defaultPool(T::class)
 
-    /** Get default [Pool] for requested Poolable type.*/
+    /** Get default [Pool] for requested Poolable type.
+     * @throws DefaultPoolCanNotBeCreatedException
+     * @throws DefaultPoolNotExistException*/
     internal fun <T : Poolable> defaultPool(kClass: KClass<T>) = defaultPools.getOrPut(kClass) {
-        val constructor = findConstructor(kClass)
+        val constructor = findConstructor(kClass) ?: throw DefaultPoolNotExistException(kClass)
         Pool { constructor.callBy(emptyMap()) }
     }
 
 
-    private fun <T : Poolable> findConstructor(forPoolable: KClass<T>): KFunction<T> {
+    private fun <T : Poolable> findConstructor(forPoolable: KClass<T>): KFunction<T>? {
         if (forPoolable.isInner) {
-            throw IllegalStateException("Can not create default pool for inner $forPoolable")
+            throw DefaultPoolCanNotBeCreatedException("Can not create default pool for inner $forPoolable. " +
+                    "Class should not be inner to have the default pool")
         }
 
         var constructor: KFunction<T>? = null
@@ -43,14 +50,14 @@ internal class DefaultPools {
             val aConstructor = annotatedConstructors[0]
             val valueParameters = aConstructor.valueParameters
             if (valueParameters.isNotEmpty() && valueParameters.any { !it.isOptional }) {
-                throw IllegalStateException(
+                throw DefaultPoolCanNotBeCreatedException(
                     "Constructor annotated with @ConstructorForDefaultPool annotation in class " +
                             "$forPoolable must have no arguments or all arguments must be optional"
                 )
             }
             constructor = aConstructor
         } else if (annotatedConstructors.size > 1) {
-            throw IllegalStateException(
+            throw DefaultPoolCanNotBeCreatedException(
                 "Only one constructor per class can be annotated with @ConstructorForDefaultPool annotation. " +
                         "${annotatedConstructors.size} constructors with this annotation found in $forPoolable"
             )
@@ -70,11 +77,7 @@ internal class DefaultPools {
                     .firstOrNull { con -> con.valueParameters.isEmpty() || con.valueParameters.all { it.isOptional } }
         }
 
-        if (constructor == null) {
-            throw IllegalStateException("Can not create default pool of $forPoolable. Required no-arg or all optional args constructor")
-        }
-
-        constructor.isAccessible = true
+        constructor?.isAccessible = true
 
         return constructor
     }

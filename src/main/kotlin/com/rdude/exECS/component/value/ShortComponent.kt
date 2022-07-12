@@ -1,7 +1,17 @@
 package com.rdude.exECS.component.value
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.observable.ObservableShortComponent
 
+/** Component representing some [Short] value. Allows to perform some actions directly on the component without the need
+ *  to access the value.
+ * ```
+ * myComponent += 717 // math operators with primitives
+ * myComponent /= myAnotherComponent // math operators with another primitive components
+ * maxOf(myComponent, myAnotherComponent) // comparable by value
+ * 0..myComponent // creating ranges
+ * ```
+ * @see [ObservableShortComponent]*/
 abstract class ShortComponent(open var value: Short = 0) : Component, Comparable<ShortComponent> {
 
     operator fun compareTo(other: Byte): Int = value.compareTo(other)

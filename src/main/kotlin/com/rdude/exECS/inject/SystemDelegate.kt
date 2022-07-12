@@ -10,10 +10,10 @@ class SystemDelegate<T : System>(private val cl: KClass<T>) {
 
     operator fun getValue(thisRef: System, property: KProperty<*>): T {
         if (system == null) {
-            for (s in thisRef.world.systems) {
-                if (s::class == cl) {
-                    system = s as T
-                    break
+            thisRef.world.systems.forEach {
+                if (it::class == cl) {
+                    system = it as T
+                    return@forEach
                 }
             }
             if (system == null) {

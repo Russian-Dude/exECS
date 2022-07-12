@@ -1,7 +1,17 @@
 package com.rdude.exECS.component.value
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.observable.ObservableFloatComponent
 
+/** Component representing some [Float] value. Allows to perform some actions directly on the component without the need
+ *  to access the value.
+ * ```
+ * myComponent += 717 // math operators with primitives
+ * myComponent /= myAnotherComponent // math operators with another primitive components
+ * maxOf(myComponent, myAnotherComponent) // comparable by value
+ * 0..myComponent // creating ranges
+ * ```
+ * @see [ObservableFloatComponent]*/
 abstract class FloatComponent(open var value: Float = 0.0F) : Component, Comparable<FloatComponent> {
 
     operator fun compareTo(other: Byte): Int = value.compareTo(other)

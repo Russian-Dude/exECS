@@ -4,8 +4,8 @@ import kotlin.reflect.KClass
 
 internal class ArrayStack<T> private constructor(array: Array<T?>){
 
-    internal var backingArray: Array<T?> = array
-    internal var size = 0
+    @JvmField internal var backingArray: Array<T?> = array
+    @JvmField internal var size = 0
 
     inline fun add(element: T) {
         if (backingArray.size == size) {

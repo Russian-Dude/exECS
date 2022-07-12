@@ -11,6 +11,7 @@ object SimpleWorldSnapshotGenerator : WorldSnapshotGenerator<SimpleWorldSnapshot
         world.rearrange()
 
         val systems = world.systems
+            .toList()
             .groupBy { system -> system.entitiesSubscription }
             .map { entry ->
                 SystemsSnapshot(entry.key.hasEntities.data.dropLastWhile { it == 0L }.toLongArray(), entry.value)
@@ -35,11 +36,9 @@ object SimpleWorldSnapshotGenerator : WorldSnapshotGenerator<SimpleWorldSnapshot
                 SingletonSnapshot(components, singletonEntity)
             }
 
-        val events = world.eventBus.eventQueue.asArray().filterNotNull()
-
         val simpleEntitiesAmount = world.entityMapper.size - singletonEntities.size - 1
 
-        return SimpleWorldSnapshot(simpleEntitiesAmount, systems, componentMappers, singletonEntities, events)
+        return SimpleWorldSnapshot(simpleEntitiesAmount, systems, componentMappers, singletonEntities)
     }
 
 
@@ -51,7 +50,6 @@ object SimpleWorldSnapshotGenerator : WorldSnapshotGenerator<SimpleWorldSnapshot
         val subscriptions = snapshot.systems
         val componentMappers = snapshot.componentMappers
         val singletons = snapshot.singletonEntities
-        val events = snapshot.events
 
         result.entityMapper.size = simpleEntitiesAmount + singletons.size + 1
         result.entityMapper.nextID += simpleEntitiesAmount
@@ -82,8 +80,6 @@ object SimpleWorldSnapshotGenerator : WorldSnapshotGenerator<SimpleWorldSnapshot
                 result.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(type)].unsafeSet(id, component)
             }
         }
-
-        result.eventBus.eventQueue.setBackingArrayUnsafe(events.toTypedArray())
 
         return result
     }

@@ -1,14 +1,12 @@
 package com.rdude.exECS.utils.collections
 
-internal class IntArrayStackSet : Iterable<Int> {
+internal class IntArrayStackSet {
 
-    internal var backingArray = IntArray(16)
+    @JvmField internal var backingArray = IntArray(16)
 
-    internal val presenceBitSet = BitSet()
+    @JvmField internal val presenceBitSet = BitSet()
 
-    private val iterator = ReusableIterator()
-
-    internal var size = 0
+    @JvmField internal var size = 0
 
 
     inline fun add(element: Int): Boolean {
@@ -42,19 +40,10 @@ internal class IntArrayStackSet : Iterable<Int> {
         backingArray = backingArray.copyOf(newSize)
     }
 
-    override fun iterator(): Iterator<Int> {
-        iterator.current = 0
-        return iterator
-    }
-
-    /** Reusable iterator to reduce garbage collector calls */
-    internal inner class ReusableIterator : Iterator<Int> {
-
-        var current = 0
-
-        override fun hasNext(): Boolean = current < size
-
-        override fun next(): Int = backingArray[current++]
+    inline fun forEach(action: (Int) -> Unit) {
+        for (i in 0 .. size - 1) {
+            action.invoke(backingArray[i])
+        }
     }
 
 }

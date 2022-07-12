@@ -2,8 +2,8 @@ package com.rdude.exECS.utils.collections
 
 internal class IntArrayStack : Iterable<Int> {
 
-    internal var backingArray = IntArray(16)
-    internal var size = 0
+    @JvmField internal var backingArray = IntArray(16)
+    @JvmField internal var size = 0
 
     private val iterator = ReusableIterator()
 
@@ -35,13 +35,13 @@ internal class IntArrayStack : Iterable<Int> {
     }
 
     /** Reusable iterator to reduce garbage collector calls */
-    internal inner class ReusableIterator : Iterator<Int> {
+    internal inner class ReusableIterator : IntIterator() {
 
         var current = 0
 
         override fun hasNext(): Boolean = current < size
 
-        override fun next(): Int = backingArray[current++]
+        override fun nextInt(): Int = backingArray[current++]
     }
 
 }

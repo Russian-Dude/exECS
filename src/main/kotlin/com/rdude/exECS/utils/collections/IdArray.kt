@@ -92,9 +92,7 @@ internal class IdArray<T> private constructor(array: Array<T?>) {
     inline fun grow() {
         val newSize = max(backingArray.size, 1) * 2
         backingArray = backingArray.copyOf(newSize)
-        for (bitSet in linkedBitSets) {
-            bitSet.growIfNeeded(newSize)
-        }
+        linkedBitSets.forEach { it.growIfNeeded(newSize) }
     }
 
     companion object {

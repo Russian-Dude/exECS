@@ -3,8 +3,7 @@ package com.rdude.exECS.utils.collections
 class BitSet(size: Int = 1) {
 
     private var data: LongArray = LongArray(size / 64 + 1) { 0 }
-    var setAmount = 0
-        private set
+    private var setAmount = 0
 
     operator fun get(index: Int) : Boolean  {
         val word = index ushr 6

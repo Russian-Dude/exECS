@@ -1,7 +1,5 @@
 package com.rdude.exECS.serialization
 
-import com.rdude.exECS.event.Event
-
 
 data class SimpleWorldSnapshot(
 
@@ -12,8 +10,6 @@ data class SimpleWorldSnapshot(
     val componentMappers: List<ComponentMapperSnapshot<*>>,
 
     val singletonEntities: List<SingletonSnapshot>,
-
-    val events: List<Event>
 
 ) : WorldSnapshot() {
 

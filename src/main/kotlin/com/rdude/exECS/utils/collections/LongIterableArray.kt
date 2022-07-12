@@ -47,7 +47,7 @@ class LongIterableArray(fixedCapacity: Boolean = false, vararg initialElements: 
 
     fun isNotEmpty() = size > 0
 
-    override fun iterator(): Iterator<Long> {
+    override fun iterator(): LongIterator {
         iterator.current = 0
         return iterator
     }
@@ -58,13 +58,13 @@ class LongIterableArray(fixedCapacity: Boolean = false, vararg initialElements: 
 
 
 
-    private inner class ReusableIterator : Iterator<Long> {
+    private inner class ReusableIterator : LongIterator() {
 
         var current = 0
 
         override fun hasNext(): Boolean = current < size
 
-        override fun next(): Long = backingArray[current++]
+        override fun nextLong(): Long = backingArray[current++]
     }
 
 }

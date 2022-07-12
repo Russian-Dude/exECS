@@ -2,12 +2,10 @@ package com.rdude.exECS.utils.collections
 
 import kotlin.math.max
 
-internal class IterableArray<T>
-private constructor(array: Array<T?>, initialSize: Int) : Iterable<T> {
+internal class IterableArray<T> private constructor(array: Array<T?>, initialSize: Int) {
 
-    internal var backingArray: Array<T?> = array
-    internal var size = 0
-    private val iterator = ReusableIterator()
+    @JvmField internal var backingArray: Array<T?> = array
+    @JvmField internal var size = 0
 
     init {
         size = initialSize
@@ -68,23 +66,66 @@ private constructor(array: Array<T?>, initialSize: Int) : Iterable<T> {
 
     inline fun isNotEmpty() = size > 0
 
-    override fun iterator(): MutableIterator<T> {
-        iterator.current = 0
-        return iterator
-    }
-
     inline fun grow() {
         backingArray = backingArray.copyOf(max(size, 1) * 2)
     }
 
-    inline fun iterate(onEach: (T) -> Unit = {}, removeIf: (T) -> Boolean = {false}) {
-        for (t in this) {
-            onEach.invoke(t)
-            if (removeIf.invoke(t)) {
-                iterator.remove()
-            }
+    inline fun forEach(action: (T) -> Unit) {
+        for (i in 0 until size) {
+            action.invoke(backingArray[i]!!)
         }
     }
+
+    inline fun removeIf(predicate: (T) -> Boolean) {
+        var current = 0
+        while (current < size) {
+            val isRemove = predicate.invoke(backingArray[current]!!)
+            if (isRemove) {
+                backingArray[current] = backingArray[--size]
+                backingArray[size] = null
+            }
+            else current++
+        }
+    }
+
+    inline fun any(predicate: (T) -> Boolean): Boolean {
+        for (i in 0 until size) {
+            if (predicate.invoke(backingArray[i]!!)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    inline fun all(predicate: (T) -> Boolean): Boolean {
+        for (i in 0 until size) {
+            if (!predicate.invoke(backingArray[i]!!)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    inline fun none(predicate: (T) -> Boolean): Boolean {
+        for (i in 0 until size) {
+            if (predicate.invoke(backingArray[i]!!)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    inline fun firstOrNull(predicate: (T) -> Boolean): T? {
+        for (i in 0 until size) {
+            val t = backingArray[i]!!
+            if (predicate.invoke(t)) {
+                return t
+            }
+        }
+        return null
+    }
+
+    inline fun toList(): List<T> = backingArray.copyOf(size).toList() as List<T>
 
     infix fun equalsWithAnyOrder(other: IterableArray<T>): Boolean {
         if (this === other) return true
@@ -110,21 +151,6 @@ private constructor(array: Array<T?>, initialSize: Int) : Iterable<T> {
 
     /** Used for serialization. */
     class IterableArraySnapshot<T>(val backingArray: Array<T?>, val size: Int)
-
-    /** Reusable iterator to reduce garbage collector calls */
-    internal inner class ReusableIterator : MutableIterator<T> {
-
-        var current = 0
-
-        override fun hasNext(): Boolean = current < size
-
-        override fun next(): T = backingArray[current++] as T
-
-        override fun remove() {
-            backingArray[--iterator.current] = backingArray[--size]
-            backingArray[size] = null
-        }
-    }
 
     companion object {
         internal inline operator fun <reified T> invoke(fixedCapacity: Boolean = false, vararg initialElements: T): IterableArray<T> {

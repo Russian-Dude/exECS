@@ -1,33 +1,30 @@
 package com.rdude.exECS.component
 
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.utils.collections.EntitiesSet
 import java.util.*
 
+/** Rich component is a [Component] that knows to which entities it is plugged into.
+ *
+ * Note, that this is by far the slowest implementation of [Component].
+ * The more entities this component is plugged into, the slower the process of removing the component from each entity will be.
+ * If only the amount of entities this component is plugged into is required, consider using [PoolableComponent].
+ *
+ * Component should not implement both interfaces: [RichComponent] and [UniqueComponent].*/
+interface RichComponent : Component, CanBeObservedBySystem {
 
-/** Rich component is a [Component] that knows to which entity it plugged into.
- * Unlike simple [Component], it can only be plugged into one entity. */
-interface RichComponent : Component {
-
-    /** ID of an entity this component is plugged into. -1 if there is no entity.
+    /** IDs of entities this component is plugged into.
+     *
      * If exECS compiler plugin is enabled and this property is not overridden by user, it will be overridden
-     * by generated property at compile time. */
-    var entityId: Int
-        get() = componentsToEntityId.getOrPut(this) { -1 }
-        set(value) { componentsToEntityId[this] = value }
-
-    /** Is this component is plugged into any entity. */
-    val isInsideEntity: Boolean get() = entityId >= 0
-
-    /** Get [EntityWrapper] of an entity this component is plugged into, or throw if there is no entity. */
-    fun getEntity() =
-        if (isInsideEntity) EntityWrapper(entityId) else throw IllegalStateException("Component is not plugged into an entity")
+     * by [generated](https://github.com/Russian-Dude/execs-plugin/wiki/Simple-properties-overriding) property at compile time.*/
+    val insideEntitiesSet: EntitiesSet
+        get() = componentsToEntitiesIds.getOrPut(this) { EntitiesSet() }
 
 
     companion object {
 
-        /** This map is used to store in which entity rich component is currently plugged into
+        /** This map is used to store in which entities rich component is currently plugged into
          * only for those RichComponent subclasses that were compiled without exECS plugin.*/
-        internal val componentsToEntityId: MutableMap<RichComponent, Int> = IdentityHashMap()
+        internal val componentsToEntitiesIds: MutableMap<RichComponent, EntitiesSet> = IdentityHashMap()
     }
 
 }

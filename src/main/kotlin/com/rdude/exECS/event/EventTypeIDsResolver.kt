@@ -1,7 +1,6 @@
 package com.rdude.exECS.event
 
 import com.rdude.exECS.utils.ExEcs
-import com.rdude.exECS.utils.reflection.ReflectionUtils
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
@@ -35,12 +34,13 @@ internal class EventTypeIDsResolver {
     // hardcoded ids for internal events
     // return amount of internal event types
     private fun resolveInternalEventsIds(classToIdMap: MutableMap<KClass<out Event>, Int>): Int {
-        classToIdMap[ActingEvent::class] = 0
-        classToIdMap[ComponentAddedEvent::class] = 1
-        classToIdMap[ComponentRemovedEvent::class] = 2
-        classToIdMap[EntityAddedEvent::class] = 3
-        classToIdMap[EntityRemovedEvent::class] = 4
-        return 5
+        classToIdMap[ComponentAddedEvent::class] = 0
+        classToIdMap[ComponentRemovedEvent::class] = 1
+        classToIdMap[ComponentChangedEvent::class] = 2
+        classToIdMap[ActingEvent::class] = 3
+        classToIdMap[EntityAddedEvent::class] = 4
+        classToIdMap[EntityRemovedEvent::class] = 5
+        return 6
     }
 
 

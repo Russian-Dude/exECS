@@ -2,7 +2,7 @@ package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.PoolableComponent
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.system.ActingSystem
 import com.rdude.exECS.world.World
@@ -19,7 +19,7 @@ internal class ComponentEntityCountTest {
     private inner class ComponentRemoverSystem(var removeCount: Int) :
         ActingSystem(anyOf = TestComponent1::class and TestComponent2::class) {
 
-        override fun act(entity: EntityWrapper, delta: Double) {
+        override fun act(entity: Entity, delta: Double) {
             if (removeCount > 0) {
                 entity.removeComponent<TestComponent1>()
                 entity.removeComponent<TestComponent2>()

@@ -1,7 +1,7 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.EntityWrapper
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.EntityAddedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.event.Event
@@ -29,7 +29,7 @@ internal class DefaultEntityEventsTest {
     }
 
     private inner class RemoveEntitySystem : EventSystem<NeedToRemoveEntityEvent>(only = CheckComponent::class) {
-        override fun eventFired(entity: EntityWrapper, event: NeedToRemoveEntityEvent) {
+        override fun eventFired(entity: Entity, event: NeedToRemoveEntityEvent) {
             entity.remove()
         }
     }
@@ -43,7 +43,7 @@ internal class DefaultEntityEventsTest {
 
     private inner class EntityAddedWithConcreteComponentSystem : EventSystem<EntityAddedEvent>(only = Component1::class) {
         var component: CheckComponent? = null
-        override fun eventFired(entity: EntityWrapper, event: EntityAddedEvent) {
+        override fun eventFired(entity: Entity, event: EntityAddedEvent) {
             component = event.entity.getComponent()
         }
     }

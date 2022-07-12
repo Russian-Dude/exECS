@@ -1,13 +1,15 @@
 package com.rdude.exECS.aspect
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.component.State
+import com.rdude.exECS.component.ComponentCondition
+import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
 
+/** Describes what the [Component] should be in order for it to be interested in.*/
 class Aspect(
-    internal val allOf: AspectEntry = AspectEntry(),
-    internal val anyOf: AspectEntry = AspectEntry(),
-    internal val exclude: AspectEntry = AspectEntry()
+    @JvmField internal val allOf: AspectEntry = AspectEntry(),
+    @JvmField internal val anyOf: AspectEntry = AspectEntry(),
+    @JvmField internal val exclude: AspectEntry = AspectEntry()
 ) {
 
     constructor(): this(AspectEntry(), AspectEntry(), AspectEntry())
@@ -29,7 +31,7 @@ class Aspect(
     constructor(
         allOf: AspectEntry = AspectEntry(),
         anyOf: AspectEntry = AspectEntry(),
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(allOf = allOf, anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
@@ -39,7 +41,7 @@ class Aspect(
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
-        allOf: State,
+        allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
         exclude: KClass<out Component>
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
@@ -47,13 +49,13 @@ class Aspect(
     constructor(
         allOf: KClass<out Component>,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
-        allOf: State,
+        allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
 
     constructor(
@@ -63,7 +65,7 @@ class Aspect(
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude)
 
     constructor(
-        allOf: State,
+        allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
         exclude: AspectEntry = AspectEntry()
     ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude)
@@ -78,7 +80,7 @@ class Aspect(
     )
 
     constructor(
-        only: State,
+        only: AspectEntryElement,
         exclude: KClass<out Component>
     ) : this(
         allOf = AspectEntry(),
@@ -88,7 +90,7 @@ class Aspect(
 
     constructor(
         only: KClass<out Component>,
-        exclude: State
+        exclude: AspectEntryElement
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
@@ -96,8 +98,8 @@ class Aspect(
     )
 
     constructor(
-        only: State,
-        exclude: State
+        only: AspectEntryElement,
+        exclude: AspectEntryElement
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
@@ -113,22 +115,37 @@ class Aspect(
         exclude = exclude)
 
     constructor(
-        only: State,
+        only: AspectEntryElement,
         exclude: AspectEntry = AspectEntry()
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
         exclude = exclude)
+
+    constructor(
+        only: ComponentCondition<*>,
+        exclude: AspectEntry = AspectEntry()
+    ) : this(
+        allOf = AspectEntry(),
+        anyOf = AspectEntry(only),
+        exclude = exclude)
+
+    init {
+        ExEcs.aspectCorrectnessChecker.checkAndThrowIfNotCorrect(this)
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Aspect) return false
-        if (allOf.simpleComponents notEqualsWithAnyOrder other.allOf.simpleComponents) return false
-        if (allOf.stateComponents notEqualsWithAnyOrder other.allOf.stateComponents) return false
-        if (anyOf.simpleComponents notEqualsWithAnyOrder other.anyOf.simpleComponents) return false
-        if (anyOf.stateComponents notEqualsWithAnyOrder other.anyOf.stateComponents) return false
-        if (exclude.simpleComponents notEqualsWithAnyOrder other.exclude.simpleComponents) return false
-        if (exclude.stateComponents notEqualsWithAnyOrder other.exclude.stateComponents) return false
+        if (allOf.types notEqualsWithAnyOrder other.allOf.types) return false
+        if (allOf.states notEqualsWithAnyOrder other.allOf.states) return false
+        if (allOf.conditions notEqualsWithAnyOrder other.allOf.conditions) return false
+        if (anyOf.types notEqualsWithAnyOrder other.anyOf.types) return false
+        if (anyOf.states notEqualsWithAnyOrder other.anyOf.states) return false
+        if (anyOf.conditions notEqualsWithAnyOrder other.anyOf.conditions) return false
+        if (exclude.types notEqualsWithAnyOrder other.exclude.types) return false
+        if (exclude.states notEqualsWithAnyOrder other.exclude.states) return false
+        if (exclude.conditions notEqualsWithAnyOrder other.exclude.conditions) return false
         return true
     }
 
@@ -156,6 +173,14 @@ class Aspect(
     }
 
     private infix fun List<*>.notEqualsWithAnyOrder(other: List<*>) = !equalsWithAnyOrder(other)
+    override fun toString(): String {
+        val allOfString = if (allOf.isEmpty()) null else "allOf=$allOf"
+        val anyOfString = if (anyOf.isEmpty()) null else "anyOf=$anyOf"
+        val excludeString = if (exclude.isEmpty()) null else "exclude=$exclude"
+        return sequenceOf(allOfString, anyOfString, excludeString)
+            .filterNotNull()
+            .joinToString(prefix = "Aspect(", postfix = ")")
+    }
 
 
 }
