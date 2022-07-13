@@ -8,15 +8,15 @@ import com.rdude.exECS.world.World
 
 internal class GeneratedFieldsInitializer {
 
-    fun initialize(system: System) {
-        initializeGeneratedComponentMappers(system) { it.world }
+    fun initialize(system: System, world: World?) {
+        initializeGeneratedComponentMappers(system, world)
     }
 
-    fun initialize(singletonEntity: SingletonEntity) {
-        initializeGeneratedComponentMappers(singletonEntity) { it.world }
+    fun initialize(singletonEntity: SingletonEntity, world: World?) {
+        initializeGeneratedComponentMappers(singletonEntity, world)
     }
 
-    private inline fun <T : Any> initializeGeneratedComponentMappers(instance: T, getWorld: (T) -> World) {
+    private inline fun <T : Any> initializeGeneratedComponentMappers(instance: T, world: World?) {
         instance::class.java.fields
             .filter { it.type == ComponentMapper::class.java && it.name.startsWith("generated_component_mapper_for_") }
             .forEach {
@@ -25,7 +25,7 @@ internal class GeneratedFieldsInitializer {
                     .replaceFirst("generated_component_mapper_for_", "")
                     .replace("_", ".")
                 val componentTypeId = ExEcs.componentTypeIDsResolver.idFor(componentTypeFqName)
-                it.set(instance, getWorld.invoke(instance).entityMapper.componentMappers[componentTypeId])
+                it.set(instance, world?.entityMapper?.componentMappers?.get(componentTypeId))
             }
     }
 

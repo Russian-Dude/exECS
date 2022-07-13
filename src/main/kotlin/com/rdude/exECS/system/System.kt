@@ -7,25 +7,26 @@ import com.rdude.exECS.component.*
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.Event
+import com.rdude.exECS.exception.EmptyEntityException
+import com.rdude.exECS.exception.SystemNotRegisteredException
 import com.rdude.exECS.inject.SystemDelegate
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
-import com.rdude.exECS.exception.EmptyEntityException
 
 abstract class System(val aspect: Aspect = Aspect()) {
 
     @Transient
-    lateinit var world: World
-        private set
+    var world: World? = null
+        internal set(value) {
+            field = value
+            ExEcs.generatedFieldsInitializer.initialize(this, value)
+        }
 
     /** If disabled, System is still registered in the [World] but does not act.*/
     var enabled = true
-
-    @Transient
-    internal var registered = false
 
     @Transient
     internal lateinit var entitiesSubscription: EntitiesSubscription
@@ -38,47 +39,50 @@ abstract class System(val aspect: Aspect = Aspect()) {
 
     /** Creates an Entity with given components. At least one component must be passed to the arguments.
      * @throws [EmptyEntityException] if no components have been passed.*/
-    fun createEntity(vararg components: Component) = world.createEntity(*components)
+    fun createEntity(vararg components: Component) = world?.createEntity(*components) ?: throw SystemNotRegisteredException(this)
 
     /** Creates the specified amount of Entities that will share the given Components.
      * @throws [EmptyEntityException] if no components have been passed.*/
     fun createEntitiesWithSameComponents(amount: Int, vararg components: Component) =
-        world.createEntitiesWithSameComponents(amount, *components)
+        world?.createEntitiesWithSameComponents(amount, *components) ?: throw SystemNotRegisteredException(this)
 
     /** Creates the specified amount of Entities with Components  */
     fun createEntities(amount: Int, vararg components: (Int) -> Component) =
-        world.createEntities(amount, *components)
+        world?.createEntities(amount, *components) ?: throw SystemNotRegisteredException(this)
 
-    fun queueEvent(event: Event) = world.queueEvent(event)
+    fun queueEvent(event: Event) =
+        world?.queueEvent(event) ?: throw SystemNotRegisteredException(this)
 
-    inline fun <reified T> queueEvent() where T : Event, T : Poolable = world.queueEvent<T>()
+    inline fun <reified T> queueEvent() where T : Event, T : Poolable =
+        world?.queueEvent<T>() ?: throw SystemNotRegisteredException(this)
 
-    inline fun <reified T> queueEvent(apply: T.() -> Unit) where T : Event, T : Poolable = world.queueEvent(apply)
-
-    internal fun setWorld(world: World) {
-        this.world = world
-        ExEcs.generatedFieldsInitializer.initialize(this)
-    }
+    inline fun <reified T> queueEvent(apply: T.() -> Unit) where T : Event, T : Poolable =
+        world?.queueEvent(apply) ?: throw SystemNotRegisteredException(this)
 
     protected inline fun <reified T : System> inject() = SystemDelegate(T::class)
 
     fun <T : SingletonEntity> getEntitySingleton(cl: KClass<T>): T? =
-        world.entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)] as T?
+        (world ?: throw SystemNotRegisteredException(this))
+            .entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)] as T?
 
     inline fun <reified T : SingletonEntity> getEntitySingleton(): T? = getEntitySingleton(T::class)
 
     protected fun <T : Component> Entity.getComponent(componentClass: KClass<T>): T? =
-        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][id] as T?
+        (world ?: throw SystemNotRegisteredException(this@System))
+            .entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][id] as T?
 
     protected fun Entity.removeComponent(componentClass: KClass<out Component>) {
-        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][id] = null
+        (world ?: throw SystemNotRegisteredException(this@System))
+            .entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][id] = null
     }
 
     protected fun Entity.hasComponent(componentClass: KClass<out Component>): Boolean =
-        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)].hasComponent(id)
+        (world ?: throw SystemNotRegisteredException(this@System))
+            .entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)].hasComponent(id)
 
     protected fun Entity.addComponent(component: Component) =
-        world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(id, component)
+        (world ?: throw SystemNotRegisteredException(this@System))
+            .entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(id, component)
 
     protected inline fun <reified T> Entity.addComponent(): T where T : Component, T : Poolable {
         val component = fromPool<T>()
@@ -93,7 +97,7 @@ abstract class System(val aspect: Aspect = Aspect()) {
         return component
     }
 
-    protected fun Entity.remove() = world.requestRemoveEntity(id)
+    protected fun Entity.remove() = (world ?: throw SystemNotRegisteredException(this@System)).requestRemoveEntity(id)
 
     protected inline fun <reified T : Component> Entity.getComponent(): T? = getComponent(T::class)
 

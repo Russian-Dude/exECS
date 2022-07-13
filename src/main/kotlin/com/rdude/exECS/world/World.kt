@@ -143,9 +143,8 @@ class World {
 
     fun addSystem(system: System) {
         checkSystemCorrectness(system)
-        system.registered = true
         systems.add(system)
-        system.setWorld(this)
+        system.world = this
         subscriptionsManager.registerSystem(system)
         if (system is EventSystem<*>) {
             eventBus.registerSystem(system)
@@ -153,13 +152,13 @@ class World {
     }
 
     fun removeSystem(system: System) {
-        if (isCurrentlyActing) throw IllegalStateException("System can not be removed during act call")
         if (system.world != this) return
+        if (isCurrentlyActing) throw IllegalStateException("System can not be removed during act method execution")
         systems.removeContainingOrder(system)
-        system.registered = false
         if (system is ActingSystem) {
             eventBus.removeSystem(system)
         }
+        system.world = null
     }
 
     fun removeSystem(ofType: KClass<out System>) =
@@ -205,7 +204,7 @@ class World {
     internal fun requestRemoveEntity(id: Int) = entityMapper.requestRemove(id)
 
     private fun checkSystemCorrectness(system: System) {
-        if (system.registered) {
+        if (system.world != null) {
             throw IllegalStateException("System $system is already registered in another world")
         }
         if (

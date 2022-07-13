@@ -24,7 +24,7 @@ abstract class SingletonEntity {
     val entityID: Int = ExEcs.singletonEntityIDsResolver.getId(this::class)
 
     @Transient
-    internal lateinit var world: World
+    lateinit var world: World
         private set
 
     internal val isWorldInitialized get() = ::world.isInitialized
@@ -115,7 +115,7 @@ abstract class SingletonEntity {
 
     internal fun setWorld(world: World) {
         this.world = world
-        ExEcs.generatedFieldsInitializer.initialize(this)
+        ExEcs.generatedFieldsInitializer.initialize(this, world)
     }
 
 }
