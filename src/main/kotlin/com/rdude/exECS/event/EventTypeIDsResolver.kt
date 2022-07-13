@@ -28,7 +28,7 @@ internal class EventTypeIDsResolver {
 
 
     fun idFor(eventClass: KClass<out Event>): Int =
-        classToIdMap[eventClass] ?: throw IllegalStateException("Component $eventClass is not registered")
+        classToIdMap[eventClass] ?: throw IllegalStateException("Event type of $eventClass is not registered")
 
 
     // hardcoded ids for internal events
