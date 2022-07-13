@@ -1,18 +1,17 @@
 package com.rdude.exECS.utils.collections
 
 import com.rdude.exECS.entity.Entity
-import com.rdude.exECS.entity.EntityMethods
 
 class EntitiesSet {
 
-    private var backingArray = IntArray(16)
+    @JvmField
+    @PublishedApi
+    internal var backingArray = IntArray(16)
 
     private val presenceBitSet = BitSet()
 
     var size = 0
         private set
-
-    private var currentIteration = 0
 
 
     internal fun add(element: Int): Boolean {
@@ -58,16 +57,14 @@ class EntitiesSet {
     fun toIdArray(): IntArray = backingArray.copyOf(size)
 
     inline fun forEach(action: (Entity) -> Unit) {
-        `start iteration`()
         for (i in 0..size - 1) {
-            action(EntityMethods.wrapId(`next iteration`()))
+            action(Entity(backingArray[i]))
         }
     }
 
     inline fun forEachIndexed(action: (index: Int, Entity) -> Unit) {
-        `start iteration`()
         for (i in 0..size - 1) {
-            action(i, EntityMethods.wrapId(`next iteration`()))
+            action(i, Entity(backingArray[i]))
         }
     }
 
@@ -75,17 +72,6 @@ class EntitiesSet {
     fun first(): Entity {
         if (size == 0) throw NoSuchElementException("EntitiesSet is empty")
         return Entity(backingArray[0])
-    }
-
-    /** This method should not be called directly. It needs to allow inline [forEach] without making backing array public
-     *  and without boxing of [Entity].
-     *  @throws [IndexOutOfBoundsException]*/
-    fun `next iteration`() = backingArray[currentIteration++]
-
-    /** This method should not be called directly. It needs to allow inline [forEach] without making backing array public
-     *  and without boxing of [Entity].*/
-    fun `start iteration`() {
-        currentIteration = 0
     }
 
     internal fun grow() {

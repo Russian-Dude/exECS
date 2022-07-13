@@ -25,7 +25,7 @@ import kotlin.reflect.KClass
  * @see SingletonEntity
  * @see EntityMethods*/
 @JvmInline
-value class Entity internal constructor(val id: Int) {
+value class Entity @PublishedApi internal constructor(val id: Int) {
 
     /** Get [Component] of type [T] or null if this Entity does not have component of such type.*/
     internal fun <T : Component> getComponent(componentClass: KClass<T>, world: World): T? =
