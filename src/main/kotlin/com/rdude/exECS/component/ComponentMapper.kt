@@ -1,19 +1,20 @@
 package com.rdude.exECS.component
 
+import com.rdude.exECS.component.state.ComponentStateManager
+import com.rdude.exECS.component.state.componentStateManagerForType
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
-import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.ComponentTypeToEntityPair
-import com.rdude.exECS.utils.decreaseCount
-import com.rdude.exECS.utils.increaseCount
+import com.rdude.exECS.utils.componentTypeId
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
 class ComponentMapper<T : Component> private constructor(
-    @JvmField internal var backingArray: Array<T?>,
     private val world: World,
+    private val stateManager: ComponentStateManager<*>?,
+    @JvmField internal var backingArray: Array<T?>,
     @JvmField internal val componentTypeId: Int,
     @JvmField internal var sendComponentAddedEvents: Boolean = false,
     @JvmField internal var sendComponentRemovedEvents: Boolean = false
@@ -31,96 +32,37 @@ class ComponentMapper<T : Component> private constructor(
     }
 
     fun removeComponent(id: Int) {
-        val removedComponent = backingArray[id]
+        val removedComponent = backingArray[id] ?: return
         backingArray[id] = null
-        if (removedComponent != null) {
-            // update component entity amount if it is poolable and request to remove it to the pool if amount is 0
-            if (removedComponent is Poolable) {
-                val insideEntities =
-                    if (removedComponent is PoolableComponent) --removedComponent.insideEntities
-                    else PoolableComponent.componentsToInsideEntitiesAmount.decreaseCount(removedComponent)
-                if (insideEntities == 0) world.poolablesManager.poolableNeedsToBeReturnedToPool(removedComponent)
-            }
-            // if component is unique component, clear it's `inside entity` property
-            if (removedComponent is UniqueComponent) {
-                removedComponent.entityId = -1
-            }
-            // if component is Rich, remove id from plugged list
-            else if (removedComponent is RichComponent) {
-                removedComponent.insideEntitiesSet.remove(id)
-            }
-            // notify subscribersManager
-            world.componentPresenceChange(
-                ComponentTypeToEntityPair(
-                    entityID = id,
-                    componentTypeId = componentTypeId,
-                )
-            )
-            // queue event
-            if (sendComponentRemovedEvents) {
-                val event = ComponentRemovedEvent.pool.obtain()
-                event.component = removedComponent
-                event.entity = Entity(id)
-                world.queueEvent(event)
-            }
-            // notify about internal change
-            world.internalChangeOccurred = true
+        // update component states if needed
+        stateManager?.componentRemovedUnsafe(removedComponent, id)
+        // notify subscribersManager
+        world.componentPresenceChange(ComponentTypeToEntityPair(entityID = id, componentTypeId = componentTypeId))
+        // queue event
+        if (sendComponentRemovedEvents) {
+            val event = ComponentRemovedEvent.pool.obtain()
+            event.component = removedComponent
+            event.entity = Entity(id)
+            world.queueEvent(event)
         }
+        // notify about internal change
+        world.internalChangeOccurred = true
     }
 
     fun addComponent(id: Int, component: T): T {
         val removedComponent = backingArray[id]
         // if adding same component just return it
         if (removedComponent == component) return removedComponent
-        // if component is unique component, set it's `inside entity` property or throw if they already set
-        if (component is UniqueComponent) {
-            if (component.entityId >= 0) throw IllegalStateException("Instance of unique component is already plugged into an entity")
-            component.entityId = id
-        }
-        // if component is rich component, add id to the `inside entities` set
-        else if (component is RichComponent) {
-            component.insideEntitiesSet.add(id)
-        }
-        // if component is observable component set its world
-        if (component is ObservableComponent<*>) {
-            val world = component.world
-            if (world != null && this.world != world) {
-                throw IllegalStateException("Observable component is already in a different world")
-            }
-            if (component.world == null) component.world = this.world
-        }
-        // if component was replaced
-        if (removedComponent != null && removedComponent != component) {
-            // update removed component entity amount if it is poolable and request to remove it to the pool if amount is 0
-            if (removedComponent is Poolable) {
-                val insideEntities =
-                    if (removedComponent is PoolableComponent) --removedComponent.insideEntities
-                    else PoolableComponent.componentsToInsideEntitiesAmount.decreaseCount(removedComponent)
-                if (insideEntities == 0) world.poolablesManager.poolableNeedsToBeReturnedToPool(removedComponent)
-            }
-            // if removed component is unique component, clear it's `inside entity` property
-            if (removedComponent is UniqueComponent) {
-                removedComponent.entityId = -1
-            }
-            // if component is Rich, remove id from plugged list
-            else if (removedComponent is RichComponent) {
-                removedComponent.insideEntitiesSet.remove(id)
-            }
+        // if component was replaced update removed component states if needed
+        if (removedComponent != null) {
+            stateManager?.componentRemovedUnsafe(removedComponent, id)
         }
         // add component to the actual entity
         backingArray[id] = component
-        // update component entity amount if it is poolable
-        if (component is Poolable) {
-            if (component is PoolableComponent) component.insideEntities++
-            else PoolableComponent.componentsToInsideEntitiesAmount.increaseCount(component)
-        }
+        // update component states if needed
+        stateManager?.componentAddedUnsafe(component, id)
         // notify subscribersManager
-        world.componentPresenceChange(
-            ComponentTypeToEntityPair(
-                entityID = id,
-                componentTypeId = componentTypeId,
-            )
-        )
+        world.componentPresenceChange(ComponentTypeToEntityPair(entityID = id, componentTypeId = componentTypeId))
         // queue events
         if (sendComponentAddedEvents) {
             val event = ComponentAddedEvent.pool.obtain()
@@ -140,31 +82,26 @@ class ComponentMapper<T : Component> private constructor(
         return component
     }
 
-    internal fun removeComponentSilently(id: Int) {
-        val removedComponent = backingArray[id]
+    internal fun removeComponentSilently(id: Int, sendComponentPresenceChange: Boolean = false) {
+        val removedComponent = backingArray[id] ?: return
         backingArray[id] = null
-        if (removedComponent != null) {
-            // update component entity amount if it is poolable and request to remove it to the pool if amount is 0
-            if (removedComponent is Poolable) {
-                val insideEntities =
-                    if (removedComponent is PoolableComponent) --removedComponent.insideEntities
-                    else PoolableComponent.componentsToInsideEntitiesAmount.decreaseCount(removedComponent)
-                if (insideEntities == 0) world.poolablesManager.poolableNeedsToBeReturnedToPool(removedComponent)
-            }
-            // if component is rich component, clear it's `inside entity` property
-            if (removedComponent is UniqueComponent) {
-                removedComponent.entityId = -1
-            }
-            // if component is Rich, remove id from plugged list
-            else if (removedComponent is RichComponent) {
-                removedComponent.insideEntitiesSet.remove(id)
-            }
+        if (sendComponentPresenceChange) {
+            world.componentPresenceChange(ComponentTypeToEntityPair(entityID = id, componentTypeId = componentTypeId))
         }
+        stateManager?.componentRemovedUnsafe(removedComponent, id)
     }
 
     internal fun replaceId(fromId: Int, toId: Int) {
-        backingArray[toId] = backingArray[fromId]
-        backingArray[fromId] = null
+        val componentFrom = backingArray[fromId]
+        val componentTo = backingArray[toId]
+        backingArray[toId] = componentFrom
+        backingArray[fromId] = componentTo
+        if (componentFrom != null) {
+            stateManager?.componentChangedIdUnsafe(componentFrom, fromId, toId)
+        }
+        if (componentTo != null) {
+            stateManager?.componentChangedIdUnsafe(componentTo, toId, fromId)
+        }
     }
 
     internal fun clear() {
@@ -180,21 +117,23 @@ class ComponentMapper<T : Component> private constructor(
         backingArray = backingArray.copyOf(newSize)
     }
 
-    internal fun setBackingArrayUnsafe(newArray: Array<*>) {
-        backingArray = newArray as Array<T?>
+    @Suppress("UNCHECKED_CAST")
+    internal fun setBackingArrayUnsafe(array: Array<*>) {
+        backingArray = array as Array<T?>
     }
 
 
     internal companion object {
-        operator fun <T : Component> invoke(type: KClass<T>, world: World, initialSize: Int, componentTypeId: Int) =
+        operator fun <T : Component> invoke(type: KClass<T>, world: World, initialSize: Int) =
             ComponentMapper(
-                backingArray =  java.lang.reflect.Array.newInstance(type.java, initialSize) as Array<T?>,
                 world = world,
-                componentTypeId = componentTypeId
+                stateManager = componentStateManagerForType(type, world),
+                backingArray = java.lang.reflect.Array.newInstance(type.java, initialSize) as Array<T?>,
+                componentTypeId = type.componentTypeId
             )
 
         operator fun invoke(componentId: Int, world: World, initialSize: Int) =
-            invoke(ExEcs.componentTypeIDsResolver.typeById(componentId), world, initialSize, componentId)
+            invoke(ExEcs.componentTypeIDsResolver.typeById(componentId), world, initialSize)
     }
 
 }

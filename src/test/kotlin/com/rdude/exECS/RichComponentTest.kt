@@ -2,6 +2,7 @@ package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.RichComponent
+import com.rdude.exECS.entity.EntityUnoptimizedMethods
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.*
 
@@ -36,7 +37,8 @@ class RichComponentTest {
     fun getAnotherComponent() {
         val list = ArrayList<Component>()
         richComponent.insideEntitiesSet.forEach {
-            it.getComponent<SimpleTestComponent>(world)?.apply { list.add(this) }
+            val component = EntityUnoptimizedMethods.getComponent<SimpleTestComponent>(it, world)
+            component?.apply { list.add(this) }
         }
         assert(list.size == 1 && list.first() == simpleComponent)
     }
@@ -44,7 +46,7 @@ class RichComponentTest {
     @Test
     @Order(2)
     fun removeComponent() {
-        richComponent.insideEntitiesSet.first().removeComponent<TestRichComponent>(world)
+        EntityUnoptimizedMethods.removeComponent<TestRichComponent>(richComponent.insideEntitiesSet.first(), world)
         world.act(0.0)
         println(richComponent.insideEntitiesSet.size)
         assert(richComponent.insideEntitiesSet.size == 1)
@@ -53,7 +55,7 @@ class RichComponentTest {
     @Test
     @Order(3)
     fun removeEntity() {
-        richComponent.insideEntitiesSet.first().remove(world)
+        EntityUnoptimizedMethods.remove(richComponent.insideEntitiesSet.first(), world)
         world.act(0.0)
         assert(richComponent.insideEntitiesSet.size == 0)
     }

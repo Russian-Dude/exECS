@@ -6,6 +6,8 @@ interface WorldSnapshotGenerator<T : WorldSnapshot> {
 
     fun generate(world: World): T
 
-    fun snapshotToWorld(snapshot: T): World
+    fun snapshotToWorld(snapshot: T, world: World)
+
+    fun snapshotToNewWorld(snapshot: T): World = World().apply { snapshotToWorld(snapshot, this) }
 
 }

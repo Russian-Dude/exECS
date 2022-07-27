@@ -2,9 +2,10 @@ package com.rdude.exECS.aspect
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.EntityMapper
-import com.rdude.exECS.system.System
+import com.rdude.exECS.system.IterableEventSystem
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.*
+import com.rdude.exECS.utils.fastForEach
 import com.rdude.exECS.world.World
 
 internal class SubscriptionsManager(private val world: World, freshAddedEntitiesArray: IntIterableArray, freshRemovedEntitiesArray: IntArrayStackSet) {
@@ -32,14 +33,14 @@ internal class SubscriptionsManager(private val world: World, freshAddedEntities
     @JvmField internal var updateRequired = false
 
 
-    /** Sets either an existing suitable [EntitiesSubscription] for [system] or creates a new one.*/
-    internal fun registerSystem(system: System) {
+    /** Sets either an existing suitable [EntitiesSubscription] for the [system] or creates a new one.*/
+    internal fun registerSystem(system: IterableEventSystem<*>) {
         var subscriptionCopied = false
-        world.systems.forEach { otherSystem ->
-            if (otherSystem !== system && system.aspect == otherSystem.aspect) {
+        world.systems.fastForEach { otherSystem ->
+            if (otherSystem !== system && otherSystem is IterableEventSystem<*> && system.aspect == otherSystem.aspect) {
                 system.entitiesSubscription = otherSystem.entitiesSubscription
                 subscriptionCopied = true
-                return@forEach
+                return@fastForEach
             }
         }
         if (!subscriptionCopied) {
@@ -48,7 +49,7 @@ internal class SubscriptionsManager(private val world: World, freshAddedEntities
                 subscription.tryToSubscribe(entityId)
             }
             system.entitiesSubscription = subscription
-            world.entityMapper.linkEntityBitSet(system.entitiesSubscription.hasEntities)
+            world.entityMapper.linkEntityBitSet(system.entitiesSubscription!!.hasEntities)
             subscriptions.add(subscription)
             subscription.componentTypeIDs.getTrueValues().forEach { subscriptionsByComponentType[it].add(subscription) }
         }

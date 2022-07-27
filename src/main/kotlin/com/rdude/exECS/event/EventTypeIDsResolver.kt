@@ -1,5 +1,6 @@
 package com.rdude.exECS.event
 
+import com.rdude.exECS.plugin.GeneratedTypeIdProperty
 import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -34,25 +35,25 @@ internal class EventTypeIDsResolver {
     // hardcoded ids for internal events
     // return amount of internal event types
     private fun resolveInternalEventsIds(classToIdMap: MutableMap<KClass<out Event>, Int>): Int {
-        classToIdMap[ComponentAddedEvent::class] = 0
-        classToIdMap[ComponentRemovedEvent::class] = 1
-        classToIdMap[ComponentChangedEvent::class] = 2
-        classToIdMap[ActingEvent::class] = 3
-        classToIdMap[EntityAddedEvent::class] = 4
-        classToIdMap[EntityRemovedEvent::class] = 5
-        return 6
+        // 3 not component related: acting, entityAdded, entityRemoved
+        classToIdMap[ActingEvent::class] = 0
+        classToIdMap[EntityAddedEvent::class] = 1
+        classToIdMap[EntityRemovedEvent::class] = 2
+
+        // component related events ids: notComponentRelatedAmount + (offset * componentsAmount) + componentId
+        // currently there are 3 component related events: added (offset = 0), removed(offset = 1) and changed(offset = 2)
+        val componentRelatedEventsIdsAmount = ExEcs.componentTypeIDsResolver.size * 3
+        return 3 + componentRelatedEventsIdsAmount
     }
 
 
     private fun initCompanionIdField(kClass: KClass<out Event>, id: Int) {
-        kClass.java.fields.singleOrNull {
-            it.name == "execs_generated_event_type_id_property_for_${
-                kClass.qualifiedName!!.replace(".", "_")}"
+        for (field in kClass.java.fields) {
+            val annotation = field.getAnnotation(GeneratedTypeIdProperty::class.java) ?: continue
+            if (annotation.type != Event::class.simpleName) continue
+            field.isAccessible = true
+            field.set(null, id)
         }
-            ?.let {
-                it.isAccessible = true
-                it.set(null, id)
-            }
     }
 
 }

@@ -2,8 +2,8 @@ package com.rdude.exECS.event
 
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.system.System
+import com.rdude.exECS.system.IterableEventSystem
 import com.rdude.exECS.system.EventSystem
-import com.rdude.exECS.system.SimpleEventSystem
 import com.rdude.exECS.world.World
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.Pool
@@ -14,8 +14,8 @@ import com.rdude.exECS.pool.Pool
  *
  * [Poolable] Events will be returned to the [Pool] automatically after they are processed by the Event Bus.
  *
+ * @see IterableEventSystem
  * @see EventSystem
- * @see SimpleEventSystem
  * @see Poolable
  * @see ComponentAddedEvent
  * @see ComponentRemovedEvent

@@ -7,11 +7,17 @@ internal class SingletonEntityIDsResolver {
 
     private val typeToId = ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(SingletonEntity::class)
         .withIndex()
-        .associate { (index, type) -> type to index + 1 }
+        .associate { (index, type) -> type to index }
 
-    val typesAmount = typeToId.size
+    private val idToType = typeToId
+        .map { (type, id) -> id to type }
+        .toMap()
 
-    fun getId(type: KClass<out SingletonEntity>) =
+    val size = typeToId.size
+
+    fun idFor(type: KClass<out SingletonEntity>) =
         typeToId[type] ?: throw IllegalArgumentException("Singleton of type $type is not registered")
+
+    fun getType(id: Int) = idToType[id] ?: throw IllegalArgumentException("Singleton with type id $id is not registered")
 
 }

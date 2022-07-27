@@ -3,7 +3,7 @@ package com.rdude.exECS
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.entity.SingletonEntity
-import com.rdude.exECS.system.ActingSystem
+import com.rdude.exECS.system.IterableActingSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -17,7 +17,7 @@ class SingletonsTest {
 
     class TestComponent : Component
 
-    class TestSystem : ActingSystem(only = TestComponent::class) {
+    class TestSystem : IterableActingSystem(only = TestComponent::class) {
         var foundComponent: TestComponent? = null
         override fun act(entity: Entity, delta: Double) {
             foundComponent = entity.getComponent()
@@ -29,7 +29,7 @@ class SingletonsTest {
         val world = World()
         val singleton = TestSingleton()
         val system = TestSystem()
-        world.addSystem(system)
+        world.registerSystem(system)
         world.addSingletonEntity(singleton)
         singleton.addComponent(TestComponent())
         world.act(0.0)

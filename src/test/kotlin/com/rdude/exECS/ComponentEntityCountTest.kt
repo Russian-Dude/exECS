@@ -4,7 +4,7 @@ import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.PoolableComponent
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.pool.Poolable
-import com.rdude.exECS.system.ActingSystem
+import com.rdude.exECS.system.IterableActingSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -17,7 +17,7 @@ internal class ComponentEntityCountTest {
     private class TestComponent2 : Component, Poolable
 
     private inner class ComponentRemoverSystem(var removeCount: Int) :
-        ActingSystem(anyOf = TestComponent1::class and TestComponent2::class) {
+        IterableActingSystem(anyOf = TestComponent1::class and TestComponent2::class) {
 
         override fun act(entity: Entity, delta: Double) {
             if (removeCount > 0) {
@@ -50,7 +50,7 @@ internal class ComponentEntityCountTest {
 
     @Test
     fun removeFromEntities() {
-        val world = World().apply { addSystem(ComponentRemoverSystem(2)) }
+        val world = World().apply { registerSystem(ComponentRemoverSystem(2)) }
         val component = TestComponent1()
         for (i in 0 until 10) {
             world.createEntity(component)
@@ -63,7 +63,7 @@ internal class ComponentEntityCountTest {
 
     @Test
     fun removeFromEntities2() {
-        val world = World().apply { addSystem(ComponentRemoverSystem(2)) }
+        val world = World().apply { registerSystem(ComponentRemoverSystem(2)) }
         val component = TestComponent2()
         for (i in 0 until 10) {
             world.createEntity(component)
@@ -76,7 +76,7 @@ internal class ComponentEntityCountTest {
 
     @Test
     fun removeFromEntitiesStopOnZero() {
-        val world = World().apply { addSystem(ComponentRemoverSystem(20)) }
+        val world = World().apply { registerSystem(ComponentRemoverSystem(20)) }
         val component = TestComponent1()
         for (i in 0..10) {
             world.createEntity(component)
@@ -89,7 +89,7 @@ internal class ComponentEntityCountTest {
 
     @Test
     fun removeFromEntitiesStopOnZero2() {
-        val world = World().apply { addSystem(ComponentRemoverSystem(20)) }
+        val world = World().apply { registerSystem(ComponentRemoverSystem(20)) }
         val component = TestComponent2()
         for (i in 0..10) {
             world.createEntity(component)

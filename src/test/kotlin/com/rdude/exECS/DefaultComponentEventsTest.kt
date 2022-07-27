@@ -6,7 +6,7 @@ import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.system.EventSystem
-import com.rdude.exECS.system.SimpleEventSystem
+import com.rdude.exECS.system.IterableEventSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.*
 
@@ -20,55 +20,55 @@ internal class DefaultComponentEventsTest {
     private inner class NeedToRemoveComponentEvent : Event
     private inner class NeedToAddComponent : Event
 
-    private inner class AnyComponentAddedSystem1 : SimpleEventSystem<ComponentAddedEvent<*>>() {
+    private inner class AnyComponentAddedSystem1 : EventSystem<ComponentAddedEvent<*>>() {
         var component: Component? = null
         override fun eventFired(event: ComponentAddedEvent<*>) {
             component = event.component
         }
     }
 
-    private inner class AnyComponentRemovedSystem1 : SimpleEventSystem<ComponentRemovedEvent<*>>() {
+    private inner class AnyComponentRemovedSystem1 : EventSystem<ComponentRemovedEvent<*>>() {
         var component: Component? = null
         override fun eventFired(event: ComponentRemovedEvent<*>) {
             component = event.component
         }
     }
 
-    private inner class AnyComponentAddedSystem2 : SimpleEventSystem<ComponentAddedEvent<out Component>>() {
+    private inner class AnyComponentAddedSystem2 : EventSystem<ComponentAddedEvent<out Component>>() {
         var component: Component? = null
         override fun eventFired(event: ComponentAddedEvent<*>) {
             component = event.component
         }
     }
 
-    private inner class AnyComponentRemovedSystem2 : SimpleEventSystem<ComponentRemovedEvent<out Component>>() {
+    private inner class AnyComponentRemovedSystem2 : EventSystem<ComponentRemovedEvent<out Component>>() {
         var component: Component? = null
         override fun eventFired(event: ComponentRemovedEvent<*>) {
             component = event.component
         }
     }
 
-    private inner class TestComponentAddedSystem : SimpleEventSystem<ComponentAddedEvent<TestComponent>>() {
+    private inner class TestComponentAddedSystem : EventSystem<ComponentAddedEvent<TestComponent>>() {
         var component: Component? = null
         override fun eventFired(event: ComponentAddedEvent<TestComponent>) {
             component = event.component
         }
     }
 
-    private inner class TestComponentRemovedSystem : SimpleEventSystem<ComponentRemovedEvent<TestComponent>>() {
+    private inner class TestComponentRemovedSystem : EventSystem<ComponentRemovedEvent<TestComponent>>() {
         var component: Component? = null
         override fun eventFired(event: ComponentRemovedEvent<TestComponent>) {
             component = event.component
         }
     }
 
-    private inner class RemoveComponentSystem : EventSystem<NeedToRemoveComponentEvent>(only = TestComponent::class) {
+    private inner class RemoveComponentSystem : IterableEventSystem<NeedToRemoveComponentEvent>(only = TestComponent::class) {
         override fun eventFired(entity: Entity, event: NeedToRemoveComponentEvent) {
             entity.removeComponent<TestComponent>()
         }
     }
 
-    private inner class AddComponentSystem : EventSystem<NeedToAddComponent>(only = StartComponent::class) {
+    private inner class AddComponentSystem : IterableEventSystem<NeedToAddComponent>(only = StartComponent::class) {
         override fun eventFired(entity: Entity, event: NeedToAddComponent) {
             entity += component
         }
@@ -90,14 +90,14 @@ internal class DefaultComponentEventsTest {
 
     @BeforeAll
     fun registerSystems() {
-        world.addSystem(anyComponentAddedSystem1)
-        world.addSystem(anyComponentRemovedSystem1)
-        world.addSystem(anyComponentAddedSystem2)
-        world.addSystem(anyComponentRemovedSystem2)
-        world.addSystem(testComponentAddedSystem)
-        world.addSystem(testComponentRemovedSystem)
-        world.addSystem(removeComponentSystem)
-        world.addSystem(addComponentSystem)
+        world.registerSystem(anyComponentAddedSystem1)
+        world.registerSystem(anyComponentRemovedSystem1)
+        world.registerSystem(anyComponentAddedSystem2)
+        world.registerSystem(anyComponentRemovedSystem2)
+        world.registerSystem(testComponentAddedSystem)
+        world.registerSystem(testComponentRemovedSystem)
+        world.registerSystem(removeComponentSystem)
+        world.registerSystem(addComponentSystem)
     }
 
     @Test

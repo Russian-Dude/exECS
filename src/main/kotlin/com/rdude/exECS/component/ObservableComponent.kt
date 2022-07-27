@@ -8,10 +8,10 @@ import java.util.*
  *
  * [ComponentChangedEvent] will be fired after the change occurred.
  *
- * Also, if component implements either [UniqueComponent] or [RichComponent], systems can subscribe not just to
+ * Also, if component implements either [UniqueComponent] or [RichComponent], IterableSystems can subscribe not just to
  * component type but to component condition:
  * ```
- * class MySystem : ActingSystem(only = PositionComponent::class { x > 0 && y > 0 })
+ * class MySystem : IterableActingSystem(only = PositionComponent::class { x > 0 && y > 0 })
  * ```
  *
  * [componentChanged] should be called to notify the change. If component only needs to store one property,

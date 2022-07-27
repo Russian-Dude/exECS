@@ -7,14 +7,14 @@ import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.exception.DefaultPoolNotExistException
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
-import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.world.World
+import com.rdude.exECS.world.WorldAccessor
 import kotlin.reflect.KClass
 
-/** [Entity] methods that can be called outside [Systems][System] and [SingletonEntities][SingletonEntity].
- * Calls to these methods will not be optimized by exECS compiler plugin.*/
-object EntityMethods {
+/** [Entity] methods that can be called outside of [WorldAccessor] context.
+ * Calls to these methods will not be optimized by the exECS compiler plugin.*/
+object EntityUnoptimizedMethods {
 
     /** Get [Component] of type [T] or null if [entity] does not have component of such type.*/
     fun <T : Component> getComponent(entity: Entity, componentClass: KClass<T>, world: World) : T? =
@@ -78,8 +78,8 @@ object EntityMethods {
     fun remove(entity: Entity, fromWorld: World) = fromWorld.requestRemoveEntity(entity.id)
 
 
-    /** Wraps the [id].
-     * @return representation of the [id] as [Entity].*/
-    fun wrapId(id: Int): Entity = Entity(id)
+    /** Generates a List with [Components][Component] plugged into [entity].*/
+    internal fun generateComponentsList(entity: Entity, world: World) =
+        world.entityMapper.componentMappers.mapNotNull { it[entity.id] }
 
 }

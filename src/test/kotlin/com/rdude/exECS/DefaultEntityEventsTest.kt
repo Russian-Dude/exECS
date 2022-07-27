@@ -5,8 +5,8 @@ import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.EntityAddedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.event.Event
+import com.rdude.exECS.system.IterableEventSystem
 import com.rdude.exECS.system.EventSystem
-import com.rdude.exECS.system.SimpleEventSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.*
 
@@ -21,27 +21,27 @@ internal class DefaultEntityEventsTest {
 
     private inner class NeedToRemoveEntityEvent : Event
 
-    private inner class EntityAddedSystem : SimpleEventSystem<EntityAddedEvent>() {
+    private inner class EntityAddedSystem : EventSystem<EntityAddedEvent>() {
         var component: CheckComponent? = null
         override fun eventFired(event: EntityAddedEvent) {
             component = event.entity.getComponent()
         }
     }
 
-    private inner class RemoveEntitySystem : EventSystem<NeedToRemoveEntityEvent>(only = CheckComponent::class) {
+    private inner class RemoveEntitySystem : IterableEventSystem<NeedToRemoveEntityEvent>(only = CheckComponent::class) {
         override fun eventFired(entity: Entity, event: NeedToRemoveEntityEvent) {
             entity.remove()
         }
     }
 
-    private inner class EntityRemovedSystem : SimpleEventSystem<EntityRemovedEvent>() {
+    private inner class EntityRemovedSystem : EventSystem<EntityRemovedEvent>() {
         var component: CheckComponent? = null
         override fun eventFired(event: EntityRemovedEvent) {
             component = event.entity.getComponent()
         }
     }
 
-    private inner class EntityAddedWithConcreteComponentSystem : EventSystem<EntityAddedEvent>(only = Component1::class) {
+    private inner class EntityAddedWithConcreteComponentSystem : IterableEventSystem<EntityAddedEvent>(only = Component1::class) {
         var component: CheckComponent? = null
         override fun eventFired(entity: Entity, event: EntityAddedEvent) {
             component = event.entity.getComponent()
@@ -58,10 +58,10 @@ internal class DefaultEntityEventsTest {
 
     @BeforeAll
     fun registerSystems() {
-        world.addSystem(entityAddedSystem)
-        world.addSystem(entityRemovedSystem)
-        world.addSystem(entityAddedWithConcreteComponentSystem)
-        world.addSystem(removeEntitySystem)
+        world.registerSystem(entityAddedSystem)
+        world.registerSystem(entityRemovedSystem)
+        world.registerSystem(entityAddedWithConcreteComponentSystem)
+        world.registerSystem(removeEntitySystem)
     }
 
     @Test

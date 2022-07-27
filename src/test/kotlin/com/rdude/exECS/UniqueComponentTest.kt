@@ -2,6 +2,8 @@ package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.UniqueComponent
+import com.rdude.exECS.entity.EntityUnoptimizedMethods
+import com.rdude.exECS.exception.ComponentStateException
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -20,7 +22,7 @@ class UniqueComponentTest {
         val uniqueComponent = TestUniqueComponent()
         val simpleComponent = SimpleTestComponent()
         world.createEntity(uniqueComponent, simpleComponent)
-        assert(uniqueComponent.getEntity().getComponent<SimpleTestComponent>(world) == simpleComponent)
+        assert(EntityUnoptimizedMethods.getComponent<SimpleTestComponent>(uniqueComponent.getEntity(), world) == simpleComponent)
     }
 
     @Test
@@ -28,15 +30,15 @@ class UniqueComponentTest {
         val world = World()
         val uniqueComponent = TestUniqueComponent()
         world.createEntity(uniqueComponent)
-        assertThrows<IllegalStateException> { world.createEntity(uniqueComponent) }
+        assertThrows<ComponentStateException> { world.createEntity(uniqueComponent) }
     }
 
     @Test
-    fun removeAndAdd() {
+    fun removeAndAddMustNotCrash() {
         val world = World()
         val uniqueComponent = TestUniqueComponent()
         world.createEntity(uniqueComponent)
-        uniqueComponent.getEntity().remove(world)
+        EntityUnoptimizedMethods.remove(uniqueComponent.getEntity(), world)
         world.act(0.0)
         world.createEntity(uniqueComponent)
     }

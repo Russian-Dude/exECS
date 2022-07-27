@@ -1,7 +1,13 @@
 package com.rdude.exECS.component
 
+import com.rdude.exECS.plugin.GeneratedTypeIdProperty
 import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
+import kotlin.reflect.full.companionObject
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 class ComponentTypeIDsResolver {
 
@@ -29,14 +35,12 @@ class ComponentTypeIDsResolver {
     fun typeById(id: Int): KClass<out Component> = idToKClass[id] ?: throw IllegalStateException("Component with type id $id is not registered")
 
     private fun initCompanionIdField(kClass: KClass<out Component>, id: Int) {
-        kClass.java.fields.singleOrNull {
-            it.name == "execs_generated_component_type_id_property_for_${
-                kClass.qualifiedName!!.replace(".", "_")}"
+        for (field in kClass.java.fields) {
+            val annotation = field.getAnnotation(GeneratedTypeIdProperty::class.java) ?: continue
+            if (annotation.type != Component::class.simpleName) continue
+            field.isAccessible = true
+            field.set(null, id)
         }
-            ?.let {
-                it.isAccessible = true
-                it.set(null, id)
-            }
     }
 
 }

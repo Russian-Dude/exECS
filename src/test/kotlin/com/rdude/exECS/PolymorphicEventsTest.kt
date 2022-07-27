@@ -1,7 +1,7 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.event.Event
-import com.rdude.exECS.system.SimpleEventSystem
+import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.*
 import kotlin.test.assertFalse
@@ -13,21 +13,21 @@ internal class PolymorphicEventsTest {
     inner class ChildEvent1 : ParentEvent()
     inner class ChildEvent2 : ParentEvent()
 
-    private inner class ChildEventSystem1 : SimpleEventSystem<ChildEvent1>() {
+    private inner class ChildEventSystem1 : EventSystem<ChildEvent1>() {
         var fired = false
         override fun eventFired(event: ChildEvent1) {
             fired = true
         }
     }
 
-    private inner class ChildEventSystem2 : SimpleEventSystem<ChildEvent2>() {
+    private inner class ChildEventSystem2 : EventSystem<ChildEvent2>() {
         var fired = false
         override fun eventFired(event: ChildEvent2) {
             fired = true
         }
     }
 
-    private inner class ParentEventSystem : SimpleEventSystem<ParentEvent>() {
+    private inner class ParentEventSystem : EventSystem<ParentEvent>() {
         var fired = false
         override fun eventFired(event: ParentEvent) {
             fired = true
@@ -41,9 +41,9 @@ internal class PolymorphicEventsTest {
 
     @BeforeAll
     fun registerSystems() {
-        world.addSystem(childEventSystem1)
-        world.addSystem(childEventSystem2)
-        world.addSystem(parentEventSystem)
+        world.registerSystem(childEventSystem1)
+        world.registerSystem(childEventSystem2)
+        world.registerSystem(parentEventSystem)
     }
 
     @BeforeEach

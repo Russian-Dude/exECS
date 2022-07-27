@@ -11,6 +11,7 @@ import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.UnsafeBitSet
 import com.rdude.exECS.world.World
 import com.rdude.exECS.aspect.SubscriptionsManager
+import com.rdude.exECS.exception.AlreadyRegisteredException
 
 internal class EntityMapper(private var world: World, freshAddedEntitiesArray: IntIterableArray, freshRemovedEntitiesArray: IntArrayStackSet) {
 
@@ -23,16 +24,16 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         Array(ExEcs.componentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
 
     /** Amount of IDs reserved for singletons.*/
-    private val reservedForSingletons = ExEcs.singletonEntityIDsResolver.typesAmount
+    @JvmField internal val reservedForSingletons = ExEcs.singletonEntityIDsResolver.size
 
     /** Singleton instances.*/
-    @JvmField internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons + 1) { null }
+    @JvmField internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons) { null }
 
-    /** Next free ID. Initially: dummy entity + reserved IDs for singletons.*/
-    @JvmField internal var nextID: Int = 1 + reservedForSingletons
+    /** Next free ID. Initially: first ID not reserved for singletons.*/
+    @JvmField internal var nextID: Int = reservedForSingletons
 
-    /** Current entities amount. Initially: dummy entity.*/
-    @JvmField internal var size = 1
+    /** Current entities amount.*/
+    @JvmField internal var size = 0
 
     /** [UnsafeBitSet] does not contain logic to increase it backing array in order to reduce checks every time its
      *  value is accessed. Since the size of [UnsafeBitSet]s containing information about entities directly depends on
@@ -85,25 +86,27 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         emptyIds.clear()
     }
 
-    /** Creates an Entity with given Components.*/
-    fun create(components: Iterable<Component>) {
+    /** Creates an Entity with given Components and returns it.*/
+    fun create(components: Iterable<Component>): Entity {
         val id = create()
         // add components to component mappers
         components.forEach {
             componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
         }
+        return Entity(id)
     }
 
-    /** Creates an Entity with given Components.*/
-    fun create(components: Array<out Component>) {
+    /** Creates an Entity with given Components and returns it.*/
+    fun create(components: Array<out Component>): Entity {
         val id = create()
         // add components to component mappers
         components.forEach {
             componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
         }
+        return Entity(id)
     }
 
-    /** Creates an entity without components.
+    /** Creates an [Entity] without components.
      *  @return created Entity id*/
     fun create(): Int {
         val id = if (emptyIds.isNotEmpty()) emptyIds.unsafePoll() else nextID
@@ -142,6 +145,8 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
             event.entityAsSingleton = singletonEntity
             world.queueEvent(event)
         }
+        // update generated fields based on the current world
+        ExEcs.generatedFieldsInitializer.singletonEntityAdded(singletonEntity, world)
         world.internalChangeOccurred = true
     }
 
@@ -177,6 +182,9 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
             componentMappers.forEach { it.removeComponentSilently(id) }
         }
         else {
+            singletons[id]?.world = null
+            // update generated fields based on the current world
+            ExEcs.generatedFieldsInitializer.singletonEntityRemoved(singletons[id]!!, world)
             singletons[id] = null
         }
     }
@@ -187,6 +195,13 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         freshAddedEntities.clear()
         freshRemovedEntities.clear()
         world.internalChangeOccurred = true
+    }
+
+    fun growSizeTo(newSize: Int) {
+        if (componentMappersSize >= newSize) return
+        componentMappersSize = newSize
+        componentMappers.forEach { it.grow(componentMappersSize) }
+        linkedBitSets.forEach { it.growIfNeeded(componentMappersSize) }
     }
 
 }

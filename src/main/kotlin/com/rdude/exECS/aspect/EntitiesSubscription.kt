@@ -3,7 +3,6 @@ package com.rdude.exECS.aspect
 import com.rdude.exECS.component.*
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.system.System
-import com.rdude.exECS.utils.Dummies
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
@@ -32,10 +31,6 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
     /** Marking that at least one entity has been removed from the [World] and must be unsubscribed.*/
     private var hasRemoveRequests = false
 
-    /** Simple subscription is subscribed only to [Dummies.DUMMY_ENTITY_ID].*/
-    private val isSimpleSubscription: Boolean
-
-
     /** To be subscribed to an entity, it must have any of these component types (by id).*/
     private val anyOfByType: IntIterableArray
 
@@ -47,13 +42,13 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
 
 
     /** To be subscribed to an entity, it must have a state that equals to any of these states.*/
-    private val anyOfByState: IterableArray<State>
+    private val anyOfByImmutableComponent: IterableArray<ImmutableComponent>
 
     /** To be subscribed to an entity, it must have states that equal to all of these states.*/
-    private val allOfByState: IterableArray<State>
+    private val allOfByImmutableComponent: IterableArray<ImmutableComponent>
 
     /** To be subscribed to an entity, it must not have a state that equals to any of these states.*/
-    private val excludeByState: IterableArray<State>
+    private val excludeByImmutableComponent: IterableArray<ImmutableComponent>
 
 
     /** To be subscribed to an entity, it must have a component that matches any of these conditions.*/
@@ -70,15 +65,13 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
     private val entityMatchChecks: IterableArray<Check> = IterableArray()
 
     init {
-        // this is simple subscription if no entity can be subscribed by this subscription
-        isSimpleSubscription = aspect.anyOf.isEmpty() && aspect.allOf.isEmpty()
 
         val anyOfTypeIds = aspect.anyOf.types.map { it.componentTypeId }.toIntArray()
         anyOfByType = IntIterableArray(true, *anyOfTypeIds)
         anyOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        anyOfByState = IterableArray(true, *aspect.anyOf.states.toTypedArray())
-        anyOfByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
+        anyOfByImmutableComponent = IterableArray(true, *aspect.anyOf.immutableComponents.toTypedArray())
+        anyOfByImmutableComponent.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
 
         anyOfComponentConditions = IterableArray(true, *aspect.anyOf.conditions.toTypedArray())
         anyOfComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
@@ -87,8 +80,8 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
         allOfByType = IntIterableArray(true, *allOfTypeIds)
         allOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        allOfByState = IterableArray(true, *aspect.allOf.states.toTypedArray())
-        allOfByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
+        allOfByImmutableComponent = IterableArray(true, *aspect.allOf.immutableComponents.toTypedArray())
+        allOfByImmutableComponent.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
 
         allOfComponentConditions = IterableArray(true, *aspect.allOf.conditions.toTypedArray())
         allOfComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
@@ -97,20 +90,20 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
         excludeByType = IntIterableArray(true, *excludeTypeIds)
         excludeTypeIds.forEach { componentTypeIDs[it] = true }
 
-        excludeByState = IterableArray(true, *aspect.exclude.states.toTypedArray())
-        excludeByState.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
+        excludeByImmutableComponent = IterableArray(true, *aspect.exclude.immutableComponents.toTypedArray())
+        excludeByImmutableComponent.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
 
         excludeComponentConditions = IterableArray(true, *aspect.exclude.conditions.toTypedArray())
         excludeComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
 
         if (excludeByType.isNotEmpty()) entityMatchChecks.add(CheckExcludeType())
-        if (excludeByState.isNotEmpty()) entityMatchChecks.add(CheckExcludeState())
+        if (excludeByImmutableComponent.isNotEmpty()) entityMatchChecks.add(CheckExcludeState())
         if (excludeComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckExcludeComponentCondition())
         if (anyOfByType.isNotEmpty()) entityMatchChecks.add(CheckAnyOfType())
-        if (anyOfByState.isNotEmpty()) entityMatchChecks.add(CheckAnyOfState())
+        if (anyOfByImmutableComponent.isNotEmpty()) entityMatchChecks.add(CheckAnyOfState())
         if (anyOfComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckAnyOfComponentCondition())
         if (allOfByType.isNotEmpty()) entityMatchChecks.add(CheckAllOfType())
-        if (allOfByState.isNotEmpty()) entityMatchChecks.add(CheckAllOfState())
+        if (allOfByImmutableComponent.isNotEmpty()) entityMatchChecks.add(CheckAllOfState())
         if (allOfComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckAllOfComponentCondition())
     }
 
@@ -166,9 +159,7 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
     }
 
     /** Checks whether the entity meets the requirements of this subscription.*/
-    fun checkEntityMatch(entityID: Int): Boolean =
-        if (isSimpleSubscription) entityID == Dummies.DUMMY_ENTITY_ID
-        else entityMatchChecks.all { it.check(entityID, entityMapper) }
+    fun checkEntityMatch(entityID: Int): Boolean = entityMatchChecks.all { it.check(entityID, entityMapper) }
 
 
     private interface Check {
@@ -182,7 +173,7 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
 
     private inner class CheckExcludeState : Check {
         override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            excludeByState.none { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+            excludeByImmutableComponent.none { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
     }
 
     private inner class CheckExcludeComponentCondition : Check {
@@ -200,7 +191,7 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
 
     private inner class CheckAnyOfState : Check {
         override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            anyOfByState.any { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+            anyOfByImmutableComponent.any { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
     }
 
     private inner class CheckAnyOfComponentCondition : Check {
@@ -226,7 +217,7 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
 
     private inner class CheckAllOfState : Check {
         override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            allOfByState.all { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+            allOfByImmutableComponent.all { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
     }
 
 

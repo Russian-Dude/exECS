@@ -5,13 +5,12 @@ import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentChange
 import com.rdude.exECS.component.ObservableComponent
 import com.rdude.exECS.component.ObservableComponentChangeManager
+import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.entity.SingletonEntity
-import com.rdude.exECS.event.ActingEvent
-import com.rdude.exECS.event.EntityRemovedEvent
-import com.rdude.exECS.event.Event
-import com.rdude.exECS.event.EventBus
+import com.rdude.exECS.event.*
 import com.rdude.exECS.exception.EmptyEntityException
+import com.rdude.exECS.exception.AlreadyRegisteredException
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.PoolablesManager
 import com.rdude.exECS.pool.fromPool
@@ -19,12 +18,14 @@ import com.rdude.exECS.serialization.SimpleWorldSnapshot
 import com.rdude.exECS.serialization.SimpleWorldSnapshotGenerator
 import com.rdude.exECS.serialization.WorldSnapshot
 import com.rdude.exECS.serialization.WorldSnapshotGenerator
-import com.rdude.exECS.system.*
+import com.rdude.exECS.system.EventSystem
+import com.rdude.exECS.system.IterableEventSystem
+import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.ComponentTypeToEntityPair
 import com.rdude.exECS.utils.collections.IntArrayStackSet
 import com.rdude.exECS.utils.collections.IntIterableArray
-import com.rdude.exECS.utils.collections.IterableArray
+import com.rdude.exECS.utils.systemTypeId
 import kotlin.reflect.KClass
 
 class World {
@@ -44,11 +45,13 @@ class World {
         entityMapper = EntityMapper(this, freshAddedEntitiesArray, freshRemovedEntitiesArray)
     }
 
-    @JvmField internal val systems = IterableArray<System>()
+    @JvmField internal val systems = Array<System?>(ExEcs.systemTypeIDsResolver.size) { null }
 
     @JvmField internal val actingEvent = ActingEvent(0.0)
 
     @JvmField internal val eventBus = EventBus(this)
+
+    @JvmField internal val internalEventsFiringManager = InternalEventsFiringManager(this)
 
     @JvmField internal val observableComponentChangeManager = ObservableComponentChangeManager(this)
 
@@ -88,17 +91,19 @@ class World {
         queueEvent(fromPool<T>().apply { apply.invoke(this) })
 
     /** Creates an Entity with given components. At least one component must be passed to the arguments.
+     * @return created [Entity].
      * @throws [EmptyEntityException] if no components have been passed.*/
-    fun createEntity(components: Iterable<Component>) {
+    fun createEntity(components: Iterable<Component>): Entity {
         components.firstOrNull() ?: throw EmptyEntityException()
-        entityMapper.create(components)
+        return entityMapper.create(components)
     }
 
     /** Creates an Entity with given components. At least one component must be passed to the arguments.
+     * @return created [Entity].
      * @throws [EmptyEntityException] if no components have been passed.*/
-    fun createEntity(vararg components: Component) {
+    fun createEntity(vararg components: Component): Entity {
         if (components.isEmpty()) throw EmptyEntityException()
-        entityMapper.create(components)
+        return entityMapper.create(components)
     }
 
 
@@ -127,51 +132,56 @@ class World {
     }
 
     fun addSingletonEntity(singletonEntity: SingletonEntity) {
-        if (singletonEntity.isWorldInitialized && singletonEntity.world != this) {
-            throw IllegalStateException("Singleton entity instance can only be registered in one World instance")
-        }
-        if (!singletonEntity.isWorldInitialized) {
-            singletonEntity.setWorld(this)
-        }
+        if (singletonEntity.world != null) throw AlreadyRegisteredException(singletonEntity)
+        singletonEntity.world = this
         entityMapper.addSingletonEntity(singletonEntity)
     }
 
-    fun <T : SingletonEntity> getEntitySingleton(cl: KClass<T>): T? =
-        entityMapper.singletons[ExEcs.singletonEntityIDsResolver.getId(cl)] as T?
+    fun <T : SingletonEntity> getSingletonEntity(cl: KClass<T>): T? =
+        entityMapper.singletons[ExEcs.singletonEntityIDsResolver.idFor(cl)] as T?
 
-    inline fun <reified T : SingletonEntity> getEntitySingleton(): T? = getEntitySingleton(T::class)
+    inline fun <reified T : SingletonEntity> getSingletonEntity(): T? = getSingletonEntity(T::class)
 
-    fun addSystem(system: System) {
-        checkSystemCorrectness(system)
-        systems.add(system)
+    fun registerSystem(system: System) {
+        if (systems[system.typeId] != null) throw AlreadyRegisteredException(system)
+        systems[system.typeId] = system
         system.world = this
-        subscriptionsManager.registerSystem(system)
+        if (system is IterableEventSystem<*>) {
+            subscriptionsManager.registerSystem(system)
+        }
         if (system is EventSystem<*>) {
             eventBus.registerSystem(system)
+            internalEventsFiringManager.registerSystem(system)
         }
+        // update generated fields based on the current world
+        ExEcs.generatedFieldsInitializer.systemAdded(system, this)
     }
 
-    fun removeSystem(system: System) {
-        if (system.world != this) return
-        if (isCurrentlyActing) throw IllegalStateException("System can not be removed during act method execution")
-        systems.removeContainingOrder(system)
-        if (system is ActingSystem) {
-            eventBus.removeSystem(system)
-        }
-        system.world = null
-    }
+    fun removeSystem(system: System) = removeSystem(system.typeId)
 
-    fun removeSystem(ofType: KClass<out System>) =
-        systems.firstOrNull { it::class == ofType }
-            ?.let { removeSystem(it) }
+    fun removeSystem(ofType: KClass<out System>) = removeSystem(ofType.systemTypeId)
 
     inline fun <reified T : System> removeSystem() = removeSystem(T::class)
 
-    fun <T : System> getSystem(ofType: KClass<T>): T? = systems.firstOrNull { it::class == ofType } as T?
+    private fun removeSystem(typeId: Int) {
+        if (isCurrentlyActing) throw IllegalStateException("System can not be removed during act method execution")
+        val system = systems[typeId]  ?: throw IllegalArgumentException("System can not be removed as it is not registered in the World")
+        systems[typeId] = null
+        if (system is EventSystem<*>) {
+            eventBus.removeSystem(system)
+            internalEventsFiringManager.removeSystem(system)
+        }
+        system.world = null
+        // update generated fields based on the current world
+        ExEcs.generatedFieldsInitializer.systemRemoved(system, this)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T : System> getSystem(ofType: KClass<T>): T? = systems[ofType.systemTypeId] as T?
 
     inline fun <reified T : System> getSystem(): T? = getSystem(T::class)
 
-    /** Removes all entities. [EntityRemovedEvent]s will not be called.*/
+    /** Removes all [Entities][Entity] from this World. [EntityRemovedEvents][EntityRemovedEvent] will not be queued.*/
     fun clearEntities() {
         entityMapper.clear()
         subscriptionsManager.unsubscribeAll()
@@ -193,6 +203,11 @@ class World {
 
     fun snapshot(): SimpleWorldSnapshot = SimpleWorldSnapshotGenerator.generate(this)
 
+    fun <T : WorldSnapshot> fromSnapshot(snapshot: T, generator: WorldSnapshotGenerator<T>) =
+        generator.snapshotToWorld(snapshot, this)
+
+    fun fromSnapshot(snapshot: SimpleWorldSnapshot) = SimpleWorldSnapshotGenerator.snapshotToWorld(snapshot, this)
+
     internal fun updateSubscriptions() = subscriptionsManager.updateSubscriptions()
 
     internal fun componentPresenceChange(change: ComponentTypeToEntityPair) =
@@ -203,27 +218,9 @@ class World {
 
     internal fun requestRemoveEntity(id: Int) = entityMapper.requestRemove(id)
 
-    private fun checkSystemCorrectness(system: System) {
-        if (system.world != null) {
-            throw IllegalStateException("System $system is already registered in another world")
-        }
-        if (
-            system is EventSystem<*>
-            && system.aspect.anyOf.isEmpty() && system.aspect.allOf.isEmpty()
-            && !(system is SimpleActingSystem || system is SimpleEventSystem<*>)
-        ) {
-            val usedName = if (system is ActingSystem) ActingSystem::class.simpleName else EventSystem::class.simpleName
-            val needName =
-                if (system is ActingSystem) SimpleActingSystem::class.simpleName else SimpleEventSystem::class.simpleName
-            throw IllegalStateException(
-                "System ${system::class} has no components in aspect. To use $usedName without components in aspect, extend from $needName instead of $usedName"
-            )
-        }
-    }
-
     companion object {
         operator fun invoke(simpleWorldSnapshot: SimpleWorldSnapshot) =
-            SimpleWorldSnapshotGenerator.snapshotToWorld(simpleWorldSnapshot)
+            SimpleWorldSnapshotGenerator.snapshotToNewWorld(simpleWorldSnapshot)
     }
 
 }

@@ -1,18 +1,14 @@
 package com.rdude.exECS.serialization
 
-
+/** Snapshot of Entities (included singletons) and Components.*/
 data class SimpleWorldSnapshot(
 
-    val simpleEntitiesAmount: Int,
+    val simpleEntityStartIndex: Int,
 
-    val systems: List<SystemsSnapshot>,
+    val simpleEntitiesAmount: Int,
 
     val componentMappers: List<ComponentMapperSnapshot<*>>,
 
     val singletonEntities: List<SingletonSnapshot>,
 
-) : WorldSnapshot() {
-
-    fun toWorld() = SimpleWorldSnapshotGenerator.snapshotToWorld(this)
-
-}
+) : WorldSnapshot()

@@ -7,6 +7,7 @@ import com.rdude.exECS.event.EventTypeIDsResolver
 import com.rdude.exECS.pool.DefaultPools
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.pool.Poolable
+import com.rdude.exECS.system.SystemTypeIdResolver
 import com.rdude.exECS.utils.reflection.EventSystemGenericQualifier
 import com.rdude.exECS.utils.reflection.GeneratedFieldsInitializer
 import com.rdude.exECS.utils.reflection.ReflectionUtils
@@ -23,6 +24,8 @@ internal object ExEcs {
     lateinit var componentTypeIDsResolver: ComponentTypeIDsResolver private set
 
     lateinit var eventTypeIDsResolver: EventTypeIDsResolver private set
+
+    lateinit var systemTypeIDsResolver: SystemTypeIdResolver private set
 
     lateinit var singletonEntityIDsResolver: SingletonEntityIDsResolver private set
 
@@ -42,28 +45,12 @@ internal object ExEcs {
         defaultPools = DefaultPools()
         componentTypeIDsResolver = ComponentTypeIDsResolver()
         eventTypeIDsResolver = EventTypeIDsResolver()
+        systemTypeIDsResolver = SystemTypeIdResolver()
         singletonEntityIDsResolver = SingletonEntityIDsResolver()
         generatedFieldsInitializer = GeneratedFieldsInitializer()
         eventSystemGenericQualifier = EventSystemGenericQualifier()
         aspectCorrectnessChecker = AspectCorrectnessChecker()
-        registerGeneratedPoolsAsDefaults()
         initialized = true
-    }
-
-
-    private fun registerGeneratedPoolsAsDefaults() {
-
-        val toPoolName: (KClass<out Poolable>) -> String =
-            { "execs_generated_pool_for_${it.qualifiedName?.replace(".", "_")}" }
-
-        reflectionUtils.getNotAbstractSubClassesFromAllPackages(Poolable::class)
-            .filter { it.java.fields.any { field -> field.name == toPoolName.invoke(it) } }
-            .forEach { poolableCl ->
-                val field = poolableCl.java.getField(toPoolName.invoke(poolableCl))
-                field.isAccessible = true
-                val pool = field.get(null) as Pool<Poolable>
-                defaultPools[poolableCl] = pool
-            }
     }
 
 }

@@ -4,91 +4,114 @@ import com.rdude.exECS.component.Component
 import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
+import com.rdude.exECS.exception.DefaultPoolNotExistException
+import com.rdude.exECS.exception.WorldNotSetException
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.world.World
-import com.rdude.exECS.system.System
+import com.rdude.exECS.world.WorldAccessor
 import kotlin.reflect.KClass
 
-/** [Entity] that keeps its id constant, so it can be referenced safely, can have its own logic or/and extra properties
- *  (prefer to keep any logic in [System]s anyway). [World] can have only one instance of each SingletonEntity,
- *  and every instance of SingletonEntity can only be plugged into one [World] instance.*/
-abstract class SingletonEntity {
+/** [Entity] that keeps its id constant, so it can be referenced safely.
+ * Can be accessed anytime by the class name using [World.getSingletonEntity] or [WorldAccessor.getSingletonEntity] methods.
+ * Each [World] can only have one instance of each SingletonEntity,
+ * and each instance of SingletonEntity can only be plugged into one [World] instance.*/
+abstract class SingletonEntity : WorldAccessor() {
 
     init {
         ExEcs.initializeIfNeeded()
     }
 
     @Transient
-    val entityID: Int = ExEcs.singletonEntityIDsResolver.getId(this::class)
+    val entityID: Int = ExEcs.singletonEntityIDsResolver.idFor(this::class)
 
     @Transient
-    lateinit var world: World
-        private set
-
-    internal val isWorldInitialized get() = ::world.isInitialized
-
+    override var world: World? = null
+        internal set
 
 
     /** @return this as [Entity].*/
-    fun asEntityWrapper(): Entity = Entity(entityID)
+    fun asEntity(): Entity = Entity(entityID)
 
 
-    /** Get [Component] of type [T] or null if this Entity does not have component of such type.*/
+    /** @return [Component] of type [T] or null if this SingletonEntity does not have component of such type.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    @Suppress("UNCHECKED_CAST")
     fun <T : Component> getComponent(componentClass: KClass<T>): T? =
-        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] as T?
+        (world ?: throw WorldNotSetException(this))
+            .entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] as T?
 
 
-    /** Get [Component] of type [T] or null if this Entity does not have component of such type.*/
+    /** @return [Component] of type [T] or null if this SingletonEntity does not have component of such type.
+     * @throws @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     inline fun <reified T : Component> getComponent(): T? = getComponent(T::class)
 
 
-    /** Get [Component] of type [T] or throw if this Entity does not have component of such type.
-     * @throws IllegalArgumentException if if this Entity does not have component of such type*/
-    operator fun <T : Component> get(componentClass: KClass<T>) =
-        getComponent(componentClass)
-            ?: throw IllegalStateException("Entity does not have a component of type $componentClass.")
-
-
-    /** Get [Component] of type [T] or null if this Entity does not have component of such type.*/
+    /** @return [Component] of type [T] or null if this SingletonEntity does not have component of such type.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     inline operator fun <reified T : Component> invoke(): T? = getComponent(T::class)
 
 
-    /** Removes [Component] of the specified type from this Entity. Fires [ComponentRemovedEvent].*/
-    fun removeComponent(componentClass: KClass<out Component>) {
-        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] = null
+    /** @return [Component] of type [T] or null if this SingletonEntity does not have component of such type.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    operator fun <T : Component> get(componentClass: KClass<T>): T? = getComponent(componentClass)
+
+
+    /** Removes [Component] of type [T] from this SingletonEntity. Queues [ComponentRemovedEvent] if Component has been removed.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun <T : Component> removeComponent(componentClass: KClass<T>) {
+        (world ?: throw WorldNotSetException(this))
+            .entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] = null
     }
 
 
-    /** Removes [Component] of the type [T] from this Entity. Fires [ComponentRemovedEvent].*/
+    /** Removes [Component] of type [T] from this SingletonEntity. Queues [ComponentRemovedEvent] if Component has been removed.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     inline fun <reified T : Component> removeComponent() = removeComponent(T::class)
 
 
-    /** Removes [Component] of the specified type from this Entity. Fires [ComponentRemovedEvent].*/
-    operator fun minusAssign(componentClass: KClass<out Component>) =
-        removeComponent(componentClass)
+    /** Removes [Component] of type [T] from this SingletonEntity. Queues [ComponentRemovedEvent] if Component has been removed.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    operator fun <T : Component> minusAssign(componentClass: KClass<T>) = removeComponent(componentClass)
 
 
-    /** Returns true if this Entity has a [Component] of the specified type.*/
-    fun hasComponent(componentClass: KClass<out Component>): Boolean =
-        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)].hasComponent(entityID)
+    /** Same as [getComponent]<[T]>() != null.
+     * @return True if this SingletonEntity has a [Component] of type [T].
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun <T : Component> hasComponent(componentClass: KClass<T>): Boolean =
+        (world ?: throw WorldNotSetException(this))
+            .entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)].hasComponent(entityID)
 
 
-    /** Returns true if this Entity has a [Component] of the type [T].*/
+    /** Same as [getComponent]<[T]>() != null.
+     * @return True if this SingletonEntity has a [Component] of type [T].
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     inline fun <reified T : Component> hasComponent() = hasComponent(T::class)
 
 
-    /** Returns true if this Entity has a [Component] of the specified type.*/
-    operator fun contains(componentClass: KClass<out Component>) = hasComponent(componentClass)
+    /** Same as [getComponent]<[T]>() != null.
+     * @return True if this SingletonEntity has a [Component] of type [T].
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    operator fun <T : Component> contains(componentClass: KClass<T>) = hasComponent(componentClass)
 
 
-    /** Adds [component] to this Entity. Fires [ComponentAddedEvent].*/
+    /** Adds [component] to this SingletonEntity. Queues [ComponentAddedEvent] if Component has been added.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     fun addComponent(component: Component) =
-        world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
+        (world ?: throw WorldNotSetException(this))
+            .entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
 
 
-    /** Obtains [Component] of type [T] from the default Pool and adds it to this Entity. Fires [ComponentAddedEvent].*/
+    /** Adds [component] to this SingletonEntity. Queues [ComponentAddedEvent] if Component has been added.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    operator fun plusAssign(component: Component) = addComponent(component)
+
+
+    /** Obtains a [Component] of type [T] from the default Pool and adds it to this SingletonEntity.
+     * Queues [ComponentAddedEvent]  if Component has been added.
+     * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     inline fun <reified T> addComponent(): T where T : Component, T : Poolable {
         val component = fromPool<T>()
         addComponent(component)
@@ -97,7 +120,9 @@ abstract class SingletonEntity {
 
 
     /** Obtains [Component] of type [T] from the default Pool, apply [apply] function to this [Component] and adds it
-     *  to this Entity. Fires [ComponentAddedEvent].*/
+     * to this SingletonEntity. Queues [ComponentAddedEvent] if Component has been added.
+     * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     inline fun <reified T> addComponent(apply: T.() -> Unit): T where T : Component, T : Poolable {
         val component = fromPool<T>()
         apply.invoke(component)
@@ -106,16 +131,14 @@ abstract class SingletonEntity {
     }
 
 
-    /** Adds [component] to this Entity. Fires [ComponentAddedEvent].*/
-    operator fun plusAssign(component: Component) = addComponent(component)
+    /** Removes this SingletonEntity from the [World]. Queues [EntityRemovedEvent].
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun remove() = (world ?: throw WorldNotSetException(this)).requestRemoveEntity(entityID)
 
 
-    /** Removes this Entity from the [World]. Fires [EntityRemovedEvent].*/
-    fun remove() = world.requestRemoveEntity(entityID)
-
-    internal fun setWorld(world: World) {
-        this.world = world
-        ExEcs.generatedFieldsInitializer.initialize(this, world)
-    }
+    /** Generates a List of [Components][Component] plugged into this SingletonEntity.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun generateComponentsList(): List<Component> =
+        world?.entityMapper?.componentMappers?.mapNotNull { it[entityID] } ?: throw WorldNotSetException(this)
 
 }

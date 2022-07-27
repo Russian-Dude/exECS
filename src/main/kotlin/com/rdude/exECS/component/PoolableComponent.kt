@@ -2,11 +2,12 @@ package com.rdude.exECS.component
 
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.pool.Poolable
+import com.rdude.exECS.entity.Entity
 import java.util.*
 import kotlin.math.max
 
 /** Combined [Component] and [Poolable] interfaces.
- * Poolable [Component] will be automatically returned to the [Pool] whenever it is removed from an Entity and there are no other
+ * Poolable [Component] will be automatically returned to the [Pool] whenever it is removed from an [Entity] and there are no other
  * Entities containing this [Component]. For this purpose it should know to how many entities it is currently plugged
  * into. This information is stored as well for [Component]s that implements only [Poolable] interface but not PoolableComponent.
  * ```

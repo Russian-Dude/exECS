@@ -1,10 +1,10 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.component.State
+import com.rdude.exECS.component.ImmutableComponent
 import com.rdude.exECS.entity.Entity
-import com.rdude.exECS.exception.AspectComponentDuplicateException
-import com.rdude.exECS.system.ActingSystem
+import com.rdude.exECS.exception.AspectNotCorrectException
+import com.rdude.exECS.system.IterableActingSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.*
 import kotlin.test.assertFalse
@@ -17,17 +17,17 @@ internal class AspectTest {
     private inner class Component3 : Component
     private inner class Component4 : Component
     private inner class Component5 : Component
-    private inner class State1 : State
-    private inner class State2 : State
+    private inner class ImmutableComponent1 : ImmutableComponent
+    private inner class ImmutableComponent2 : ImmutableComponent
 
-    private inner class AllOf123 : ActingSystem(allOf = Component1::class and Component2::class and Component3::class) {
+    private inner class AllOf123 : IterableActingSystem(allOf = Component1::class and Component2::class and Component3::class) {
         var fired = false
         override fun act(entity: Entity, delta: Double) {
             fired = true
         }
     }
 
-    private inner class AllOf123Exclude4 : ActingSystem(
+    private inner class AllOf123Exclude4 : IterableActingSystem(
         allOf = Component1::class and Component2::class and Component3::class,
         exclude = Component4::class) {
         var fired = false
@@ -36,14 +36,14 @@ internal class AspectTest {
         }
     }
 
-    private inner class Any123 : ActingSystem(anyOf = Component1::class and Component2::class and Component3::class) {
+    private inner class Any123 : IterableActingSystem(anyOf = Component1::class and Component2::class and Component3::class) {
         var fired = false
         override fun act(entity: Entity, delta: Double) {
             fired = true
         }
     }
 
-    private inner class AnyOf123Exclude4 : ActingSystem(
+    private inner class AnyOf123Exclude4 : IterableActingSystem(
         anyOf = Component1::class and Component2::class and Component3::class,
         exclude = Component4::class) {
         var fired = false
@@ -52,7 +52,7 @@ internal class AspectTest {
         }
     }
 
-    private inner class AllOf12AnyOf34 : ActingSystem(
+    private inner class AllOf12AnyOf34 : IterableActingSystem(
         allOf = Component1::class and Component2::class,
         anyOf = Component3::class and Component4::class) {
         var fired = false
@@ -61,7 +61,7 @@ internal class AspectTest {
         }
     }
 
-    private inner class AllOf12AnyOf34Exclude5 : ActingSystem(
+    private inner class AllOf12AnyOf34Exclude5 : IterableActingSystem(
         allOf = Component1::class and Component2::class,
         anyOf = Component3::class and Component4::class,
         exclude = Component5::class) {
@@ -71,21 +71,21 @@ internal class AspectTest {
         }
     }
 
-    private inner class Only1 : ActingSystem(only = Component1::class) {
+    private inner class Only1 : IterableActingSystem(only = Component1::class) {
         var fired = false
         override fun act(entity: Entity, delta: Double) {
             fired = true
         }
     }
 
-    private inner class Only1Exclude2 : ActingSystem(only = Component1::class, exclude = Component2::class) {
+    private inner class Only1Exclude2 : IterableActingSystem(only = Component1::class, exclude = Component2::class) {
         var fired = false
         override fun act(entity: Entity, delta: Double) {
             fired = true
         }
     }
 
-    private inner class AllOf1AnyOf23 : ActingSystem(
+    private inner class AllOf1AnyOf23 : IterableActingSystem(
         allOf = Component1::class,
         anyOf = Component2::class and Component3::class) {
         var fired = false
@@ -94,7 +94,7 @@ internal class AspectTest {
         }
     }
 
-    private inner class AllOf1AnyOf23Exclude4 : ActingSystem(
+    private inner class AllOf1AnyOf23Exclude4 : IterableActingSystem(
         allOf = Component1::class,
         anyOf = Component2::class and Component3::class,
         exclude = Component4::class) {
@@ -104,7 +104,7 @@ internal class AspectTest {
         }
     }
 
-    private inner class AllOf1AnyOf23Exclude45 : ActingSystem(
+    private inner class AllOf1AnyOf23Exclude45 : IterableActingSystem(
         allOf = Component1::class,
         anyOf = Component2::class and Component3::class,
         exclude = Component4::class and Component5::class) {
@@ -114,32 +114,32 @@ internal class AspectTest {
         }
     }
 
-    private inner class WrongSystem1 : ActingSystem(anyOf = Component1::class and Component2::class and Component1::class) {
+    private inner class WrongSystem1 : IterableActingSystem(anyOf = Component1::class and Component2::class and Component1::class) {
         override fun act(entity: Entity, delta: Double) { }
     }
 
-    private inner class WrongSystem2 : ActingSystem(
+    private inner class WrongSystem2 : IterableActingSystem(
         allOf = Component1::class and Component2::class,
         exclude = Component1::class
     ) {
         override fun act(entity: Entity, delta: Double) { }
     }
 
-    private inner class WrongSystem3 : ActingSystem(
+    private inner class WrongSystem3 : IterableActingSystem(
         allOf = state1 and state1,
         exclude = Component1::class
     ) {
         override fun act(entity: Entity, delta: Double) { }
     }
 
-    private inner class WrongSystem4 : ActingSystem(
+    private inner class WrongSystem4 : IterableActingSystem(
         allOf = state1 and Component2::class,
         exclude = state1
     ) {
         override fun act(entity: Entity, delta: Double) { }
     }
 
-    private inner class WrongSystem5 : ActingSystem(
+    private inner class WrongSystem5 : IterableActingSystem(
         allOf = state1 and state2,
     ) {
         override fun act(entity: Entity, delta: Double) { }
@@ -147,8 +147,8 @@ internal class AspectTest {
 
     private val world = World()
 
-    private val state1 = State1()
-    private val state2 = State1()
+    private val state1 = ImmutableComponent1()
+    private val state2 = ImmutableComponent1()
 
     private val allOf123 = AllOf123()
     private val anyOf123 = Any123()
@@ -164,17 +164,17 @@ internal class AspectTest {
 
     @BeforeAll
     fun registerSystems() {
-        world.addSystem(allOf123)
-        world.addSystem(allOf123Exclude4)
-        world.addSystem(anyOf123)
-        world.addSystem(anyOf123Exclude4)
-        world.addSystem(allOf12AnyOf34)
-        world.addSystem(allOf12AnyOf34Exclude5)
-        world.addSystem(only1)
-        world.addSystem(only1Exclude2)
-        world.addSystem(allOf1AnyOf23)
-        world.addSystem(allOf1AnyOf23Exclude4)
-        world.addSystem(allOf1AnyOf23Exclude45)
+        world.registerSystem(allOf123)
+        world.registerSystem(allOf123Exclude4)
+        world.registerSystem(anyOf123)
+        world.registerSystem(anyOf123Exclude4)
+        world.registerSystem(allOf12AnyOf34)
+        world.registerSystem(allOf12AnyOf34Exclude5)
+        world.registerSystem(only1)
+        world.registerSystem(only1Exclude2)
+        world.registerSystem(allOf1AnyOf23)
+        world.registerSystem(allOf1AnyOf23Exclude4)
+        world.registerSystem(allOf1AnyOf23Exclude45)
     }
 
     @BeforeEach
@@ -396,27 +396,27 @@ internal class AspectTest {
 
     @Test
     fun wrongAspect1() {
-        assertThrows<AspectComponentDuplicateException> { WrongSystem1() }
+        assertThrows<AspectNotCorrectException> { WrongSystem1() }
     }
 
     @Test
     fun wrongAspect2() {
-        assertThrows<AspectComponentDuplicateException> { WrongSystem2() }
+        assertThrows<AspectNotCorrectException> { WrongSystem2() }
     }
 
     @Test
     fun wrongAspect3() {
-        assertThrows<AspectComponentDuplicateException> { WrongSystem3() }
+        assertThrows<AspectNotCorrectException> { WrongSystem3() }
     }
 
     @Test
     fun wrongAspect4() {
-        assertThrows<AspectComponentDuplicateException> { WrongSystem4() }
+        assertThrows<AspectNotCorrectException> { WrongSystem4() }
     }
 
     @Test
     fun wrongAspect5() {
-        assertThrows<AspectComponentDuplicateException> { WrongSystem5() }
+        assertThrows<AspectNotCorrectException> { WrongSystem5() }
     }
 
 

@@ -12,7 +12,7 @@ import com.rdude.exECS.entity.Entity
  *
  * In exECS Component is implemented as an interface in order not to restrict its use with other classes,
  * allowing this interface to be combined with classes from other libraries and frameworks if necessary.
- * @see State
+ * @see ImmutableComponent
  * @see UniqueComponent
  * @see RichComponent
  * @see ObservableComponent

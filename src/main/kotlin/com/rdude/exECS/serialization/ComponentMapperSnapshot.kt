@@ -28,13 +28,13 @@ data class ComponentMapperSnapshot<T : Component>(
         }
     }
 
-    fun toArray(emptyStartAmount: Int): Array<T?> {
+    fun toArray(): Array<T?> {
 
-        val result = java.lang.reflect.Array.newInstance(type.java, presence.sum() + emptyStartAmount) as Array<T?>
+        val result = java.lang.reflect.Array.newInstance(type.java, presence.sum()) as Array<T?>
 
         var currentNull = nullStart
         var currentDataElement = 0
-        var currentResultIndex = emptyStartAmount
+        var currentResultIndex = 0
 
         for (amount in presence) {
             if (currentNull) {

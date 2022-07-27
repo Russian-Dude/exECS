@@ -8,7 +8,7 @@ import com.rdude.exECS.pool.ConstructorForDefaultPool
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
-import com.rdude.exECS.system.ActingSystem
+import com.rdude.exECS.system.IterableActingSystem
 import com.rdude.exECS.world.World
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -24,13 +24,13 @@ class PoolablesTest {
 
     class SimplePoolableComponent2 : PoolableComponent
 
-    private inner class EntityRemoverSystem : ActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
+    private inner class EntityRemoverSystem : IterableActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
         override fun act(entity: Entity, delta: Double) {
             entity.remove()
         }
     }
 
-    private inner class ComponentRemoverSystem : ActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
+    private inner class ComponentRemoverSystem : IterableActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
         override fun act(entity: Entity, delta: Double) {
             entity.removeComponent<SimplePoolableComponent>()
             entity.removeComponent<SimplePoolableComponent2>()
@@ -94,7 +94,7 @@ class PoolablesTest {
     fun returnComponentToPoolAfterEntityRemoved() {
         val world = World()
         val system = EntityRemoverSystem()
-        world.addSystem(system)
+        world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent>()
         world.createEntity(component)
         world.act(0.0)
@@ -106,7 +106,7 @@ class PoolablesTest {
     fun returnComponentToPoolAfterEntityRemoved2() {
         val world = World()
         val system = EntityRemoverSystem()
-        world.addSystem(system)
+        world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent2>()
         world.createEntity(component)
         world.act(0.0)
@@ -118,7 +118,7 @@ class PoolablesTest {
     fun returnComponentToPoolAfterBeingRemoved() {
         val world = World()
         val system = ComponentRemoverSystem()
-        world.addSystem(system)
+        world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent>()
         world.createEntity(component)
         world.act(0.0)
@@ -130,7 +130,7 @@ class PoolablesTest {
     fun returnComponentToPoolAfterBeingRemoved2() {
         val world = World()
         val system = ComponentRemoverSystem()
-        world.addSystem(system)
+        world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent2>()
         world.createEntity(component)
         world.act(0.0)

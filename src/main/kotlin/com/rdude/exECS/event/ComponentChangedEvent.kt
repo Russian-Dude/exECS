@@ -4,10 +4,11 @@ import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentChange
 import com.rdude.exECS.component.ObservableComponent
 import com.rdude.exECS.pool.Pool
-import com.rdude.exECS.system.System
+import com.rdude.exECS.system.EventSystem
+import com.rdude.exECS.utils.ExEcs
 
 
-/** Every time an [ObservableComponent] of type [T] is changed, if at least one [System] is subscribed to this Event
+/** Every time an [ObservableComponent] of type [T] is changed, if at least one [EventSystem] is subscribed to this Event
  * with type [T], this event is queued.*/
 class ComponentChangedEvent<T : ObservableComponent<*>> : InternalPoolableEvent(), ComponentRelatedEvent<T> {
 
@@ -18,8 +19,8 @@ class ComponentChangedEvent<T : ObservableComponent<*>> : InternalPoolableEvent(
     /** The change that happened to the [component].*/
     internal lateinit var _change: ComponentChange
 
-    // hardcoded for performance
-    override fun getEventTypeId(): Int = 2
+    // notComponentRelatedInternalEventsAmount + (eventId * componentsAmount) + componentId
+    override fun getEventTypeId(): Int = 3 + (2 * ExEcs.componentTypeIDsResolver.size) + component.getComponentTypeId()
 
 
     internal companion object {
