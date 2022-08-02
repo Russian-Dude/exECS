@@ -33,6 +33,7 @@ internal class GeneratedFieldsInitializer {
                     if (componentMapperAnnotation != null) {
                         if (entry == null) entry = ClassEntry.from(ownerClass)
                         entry.componentMapperFields[componentMapperAnnotation.componentType] = field
+                        field.isAccessible = true
                         continue
                     }
 
@@ -44,6 +45,7 @@ internal class GeneratedFieldsInitializer {
                         entry.singletonEntitiesFields[singletonType] = field
                         val singletonEntry = classEntries.getOrPut(singletonType) { ClassEntry.from(singletonType) }
                         singletonEntry.dependentEntries.add(entry)
+                        field.isAccessible = true
                         continue
                     }
 
@@ -55,6 +57,7 @@ internal class GeneratedFieldsInitializer {
                         entry.systemFields[systemType] = field
                         val systemEntry = classEntries.getOrPut(systemType) { ClassEntry.from(systemType) }
                         systemEntry.dependentEntries.add(entry)
+                        field.isAccessible = true
                     }
                 }
                 if (entry != null && !classEntries.containsKey(ownerClass)) {
@@ -89,7 +92,7 @@ internal class GeneratedFieldsInitializer {
         }
         // init fields in dependent entries
         entry.dependentEntries.forEach { dependentEntry ->
-            entry.setFieldOfDependentEntry(entry, world)
+            entry.setFieldOfDependentEntry(dependentEntry, world)
         }
     }
 
@@ -109,7 +112,7 @@ internal class GeneratedFieldsInitializer {
         }
         // clear fields in dependent entries
         entry.dependentEntries.forEach { dependentEntry ->
-            entry.clearFieldOfDependentEntry(entry, world)
+            entry.clearFieldOfDependentEntry(dependentEntry, world)
         }
     }
 
