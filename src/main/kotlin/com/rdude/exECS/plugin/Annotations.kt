@@ -18,12 +18,13 @@ annotation class GeneratedSingletonEntityProperty(val singletonType: KClass<out 
 annotation class GeneratedSystemProperty(val systemType: KClass<out System>)
 
 
-/** @param type either Component or Event etc. (class simple name).*/
+/** @param superType Event, Component etc
+ * @param type concrete type (eg MyComponent) */
 @Target(AnnotationTarget.FIELD, AnnotationTarget.PROPERTY)
-annotation class GeneratedTypeIdProperty(val type: String)
+annotation class GeneratedTypeIdProperty(val superType: KClass<*>, val type: KClass<*>)
 
 
 @Target(AnnotationTarget.FIELD, AnnotationTarget.PROPERTY)
-annotation class GeneratedDefaultPoolProperty
+annotation class GeneratedDefaultPoolProperty(val type: KClass<out Poolable>)
 
 

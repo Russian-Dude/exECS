@@ -37,7 +37,7 @@ internal class DefaultPools {
     @Suppress("UNCHECKED_CAST")
     private fun findGeneratedDefaultPool(forPoolable: KClass<out Poolable>): Pool<Poolable>? {
         val poolProperty = forPoolable::class.companionObject?.memberProperties
-            ?.find { it.hasAnnotation<GeneratedDefaultPoolProperty>() }
+            ?.find { it.findAnnotation<GeneratedDefaultPoolProperty>()?.type == forPoolable }
             ?: return null
         return poolProperty.call(forPoolable::class.companionObjectInstance!!) as Pool<Poolable>
     }

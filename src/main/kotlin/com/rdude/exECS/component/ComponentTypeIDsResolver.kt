@@ -3,11 +3,6 @@ package com.rdude.exECS.component
 import com.rdude.exECS.plugin.GeneratedTypeIdProperty
 import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
-import kotlin.reflect.full.companionObject
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.hasAnnotation
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.jvm.isAccessible
 
 class ComponentTypeIDsResolver {
 
@@ -37,7 +32,7 @@ class ComponentTypeIDsResolver {
     private fun initCompanionIdField(kClass: KClass<out Component>, id: Int) {
         for (field in kClass.java.fields) {
             val annotation = field.getAnnotation(GeneratedTypeIdProperty::class.java) ?: continue
-            if (annotation.type != Component::class.simpleName) continue
+            if (annotation.superType != Component::class || annotation.type != kClass) continue
             field.isAccessible = true
             field.set(null, id)
         }

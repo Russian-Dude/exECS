@@ -50,7 +50,7 @@ internal class EventTypeIDsResolver {
     private fun initCompanionIdField(kClass: KClass<out Event>, id: Int) {
         for (field in kClass.java.fields) {
             val annotation = field.getAnnotation(GeneratedTypeIdProperty::class.java) ?: continue
-            if (annotation.type != Event::class.simpleName) continue
+            if (annotation.superType != Event::class || annotation.type != kClass) continue
             field.isAccessible = true
             field.set(null, id)
         }
