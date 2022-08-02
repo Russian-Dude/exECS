@@ -19,10 +19,6 @@ import kotlin.reflect.KClass
  * and each instance of SingletonEntity can only be plugged into one [World] instance.*/
 abstract class SingletonEntity : WorldAccessor() {
 
-    init {
-        ExEcs.initializeIfNeeded()
-    }
-
     @Transient
     val entityID: Int = ExEcs.singletonEntityIDsResolver.idFor(this::class)
 

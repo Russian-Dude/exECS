@@ -30,10 +30,6 @@ import kotlin.reflect.KClass
 
 class World {
 
-    init {
-        ExEcs.initializeIfNeeded()
-    }
-
     @JvmField internal val subscriptionsManager: SubscriptionsManager
 
     @JvmField internal val entityMapper: EntityMapper

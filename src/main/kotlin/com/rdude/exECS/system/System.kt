@@ -6,10 +6,6 @@ import com.rdude.exECS.world.WorldAccessor
 
 abstract class System : WorldAccessor() {
 
-    init {
-        ExEcs.initializeIfNeeded()
-    }
-
     @Transient
     override var world: World? = null
         internal set

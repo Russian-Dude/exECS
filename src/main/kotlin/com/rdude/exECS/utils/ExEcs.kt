@@ -15,42 +15,22 @@ import kotlin.reflect.KClass
 
 internal object ExEcs {
 
-    private var initialized = false
+    @JvmField val reflectionUtils: ReflectionUtils = ReflectionUtils()
 
-    lateinit var reflectionUtils: ReflectionUtils private set
+    @JvmField val defaultPools: DefaultPools = DefaultPools()
 
-    lateinit var defaultPools: DefaultPools private set
+    @JvmField val componentTypeIDsResolver: ComponentTypeIDsResolver = ComponentTypeIDsResolver()
 
-    lateinit var componentTypeIDsResolver: ComponentTypeIDsResolver private set
+    @JvmField val eventTypeIDsResolver: EventTypeIDsResolver = EventTypeIDsResolver()
 
-    lateinit var eventTypeIDsResolver: EventTypeIDsResolver private set
+    @JvmField val systemTypeIDsResolver: SystemTypeIdResolver = SystemTypeIdResolver()
 
-    lateinit var systemTypeIDsResolver: SystemTypeIdResolver private set
+    @JvmField val singletonEntityIDsResolver: SingletonEntityIDsResolver = SingletonEntityIDsResolver()
 
-    lateinit var singletonEntityIDsResolver: SingletonEntityIDsResolver private set
+    @JvmField val generatedFieldsInitializer: GeneratedFieldsInitializer = GeneratedFieldsInitializer()
 
-    lateinit var generatedFieldsInitializer: GeneratedFieldsInitializer private set
+    @JvmField val eventSystemGenericQualifier: EventSystemGenericQualifier = EventSystemGenericQualifier()
 
-    lateinit var eventSystemGenericQualifier: EventSystemGenericQualifier private set
-
-    lateinit var aspectCorrectnessChecker: AspectCorrectnessChecker
-
-    init {
-        initializeIfNeeded()
-    }
-
-    fun initializeIfNeeded() {
-        if (initialized) return
-        reflectionUtils = ReflectionUtils()
-        defaultPools = DefaultPools()
-        componentTypeIDsResolver = ComponentTypeIDsResolver()
-        eventTypeIDsResolver = EventTypeIDsResolver()
-        systemTypeIDsResolver = SystemTypeIdResolver()
-        singletonEntityIDsResolver = SingletonEntityIDsResolver()
-        generatedFieldsInitializer = GeneratedFieldsInitializer()
-        eventSystemGenericQualifier = EventSystemGenericQualifier()
-        aspectCorrectnessChecker = AspectCorrectnessChecker()
-        initialized = true
-    }
+    @JvmField val aspectCorrectnessChecker: AspectCorrectnessChecker = AspectCorrectnessChecker()
 
 }
