@@ -8,4 +8,7 @@ object ExEcsGeneratedCalls {
     inline fun <T : Component> getComponentFromSingletonEntityByComponentTypeId(singletonEntity: SingletonEntity, componentTypeId: Int): T? =
         singletonEntity.getComponent(componentTypeId)
 
+    inline fun hasComponentFromSingletonEntityByComponentTypeId(singletonEntity: SingletonEntity, componentTypeId: Int): Boolean =
+        singletonEntity.hasComponent(componentTypeId)
+
 }

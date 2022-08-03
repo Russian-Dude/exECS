@@ -90,6 +90,14 @@ abstract class SingletonEntity : WorldAccessor() {
         componentsCache[componentClass.componentTypeId] != null
 
 
+    /** @return True if this SingletonEntity has a [Component] of type [T].
+     * @throws [ArrayIndexOutOfBoundsException]
+     * @throws [ClassCastException]*/
+    @Suppress("UNCHECKED_CAST")
+    @PublishedApi
+    internal fun hasComponent(componentTypeId: Int): Boolean = componentsCache[componentTypeId] != null
+
+
     /** Same as [getComponent]<[T]>() != null.
      * @return True if this SingletonEntity has a [Component] of type [T].*/
     inline fun <reified T : Component> hasComponent() = hasComponent(T::class)
