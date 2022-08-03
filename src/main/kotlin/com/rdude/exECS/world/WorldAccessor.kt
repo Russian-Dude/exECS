@@ -14,6 +14,7 @@ import com.rdude.exECS.exception.EmptyEntityException
 import com.rdude.exECS.exception.WorldNotSetException
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
+import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
 
@@ -113,6 +114,20 @@ abstract class WorldAccessor {
     protected fun <T : SingletonEntity> addSingletonEntity(singletonEntity: T) =
         (world ?: throw WorldNotSetException(this))
             .addSingletonEntity(singletonEntity)
+
+
+    /** @return [System] of type [T] or null if System with this type is not registered in the [world].
+     * @throws [WorldNotSetException] if [world] property is null*/
+    protected fun <T : System> getSystem(systemType: KClass<T>): T? =
+        (world ?: throw WorldNotSetException(this))
+            .getSystem(systemType)
+
+
+    /** @return [System] of type [T] or null if System with this type is not registered in the [world].
+     * @throws [WorldNotSetException] if [world] property is null*/
+    protected inline fun <reified T : System> getSystem(): T? =
+        (world ?: throw WorldNotSetException(this))
+            .getSystem(T::class)
 
 
     /** @return [Component] of type [T] or null if this Entity does not have component of such type.
