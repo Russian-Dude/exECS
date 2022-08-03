@@ -3,6 +3,7 @@ package com.rdude.exECS.component
 import com.rdude.exECS.component.state.ComponentStateManager
 import com.rdude.exECS.component.state.componentStateManagerForType
 import com.rdude.exECS.entity.Entity
+import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.utils.ExEcs
@@ -20,6 +21,10 @@ class ComponentMapper<T : Component> private constructor(
     @JvmField internal var sendComponentRemovedEvents: Boolean = false
 ) {
 
+    /** Entities with id less than this are SingletonEntities.
+     * Used to update [SingletonEntity.componentsCache] property if needed.*/
+    private val singletonEntitiesIdBoundary = ExEcs.singletonEntityIDsResolver.size
+
     operator fun get(id: Int) = backingArray[id]
 
     operator fun set(id: Int, component: T?) {
@@ -34,6 +39,10 @@ class ComponentMapper<T : Component> private constructor(
     fun removeComponent(id: Int) {
         val removedComponent = backingArray[id] ?: return
         backingArray[id] = null
+        // if removing from SingletonEntity, update its components cache
+        if (id < singletonEntitiesIdBoundary) {
+            world.entityMapper.singletons[id]?.componentsCache?.set(componentTypeId, null)
+        }
         // update component states if needed
         stateManager?.componentRemovedUnsafe(removedComponent, id)
         // notify subscribersManager
@@ -59,6 +68,10 @@ class ComponentMapper<T : Component> private constructor(
         }
         // add component to the actual entity
         backingArray[id] = component
+        // if adding to SingletonEntity, update its components cache
+        if (id < singletonEntitiesIdBoundary) {
+            world.entityMapper.singletons[id]?.componentsCache?.set(componentTypeId, component)
+        }
         // update component states if needed
         stateManager?.componentAddedUnsafe(component, id)
         // notify subscribersManager
@@ -85,6 +98,10 @@ class ComponentMapper<T : Component> private constructor(
     internal fun removeComponentSilently(id: Int, sendComponentPresenceChange: Boolean = false) {
         val removedComponent = backingArray[id] ?: return
         backingArray[id] = null
+        // if removing from SingletonEntity, update its components cache
+        if (id < singletonEntitiesIdBoundary) {
+            world.entityMapper.singletons[id]?.componentsCache?.set(componentTypeId, null)
+        }
         if (sendComponentPresenceChange) {
             world.componentPresenceChange(ComponentTypeToEntityPair(entityID = id, componentTypeId = componentTypeId))
         }

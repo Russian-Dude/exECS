@@ -68,6 +68,13 @@ internal inline fun <T> Array<T>.fastForEach(action: (T) -> Unit) {
     }
 }
 
+/** For each loop without iterator instantiation.*/
+internal inline fun <T> Array<T>.fastForEachIndexed(action: (index: Int, T) -> Unit) {
+    for (i in 0..size - 1) {
+        action(i, get(i))
+    }
+}
+
 internal inline fun <T> Array<T>.getOrPut(index: Int, put: T): T = get(index) ?: put.apply { set(index, put) }
 
 /** Wraps long value to [ComponentTypeToEntityPair] value class.*/

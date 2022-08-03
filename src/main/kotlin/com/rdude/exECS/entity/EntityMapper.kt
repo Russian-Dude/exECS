@@ -12,6 +12,8 @@ import com.rdude.exECS.utils.collections.UnsafeBitSet
 import com.rdude.exECS.world.World
 import com.rdude.exECS.aspect.SubscriptionsManager
 import com.rdude.exECS.exception.AlreadyRegisteredException
+import com.rdude.exECS.utils.fastForEach
+import com.rdude.exECS.utils.fastForEachIndexed
 
 internal class EntityMapper(private var world: World, freshAddedEntitiesArray: IntIterableArray, freshRemovedEntitiesArray: IntArrayStackSet) {
 
@@ -19,12 +21,12 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
      * Stored here to calculate new size only once and only when entity with id that exceeds current size is added.*/
     @JvmField internal var componentMappersSize: Int = 16
 
+    /** Amount of IDs reserved for singletons.*/
+    @JvmField internal val reservedForSingletons = ExEcs.singletonEntityIDsResolver.size
+
     /** Stores component mappers for every component type. Array index - component type id.*/
     @JvmField internal val componentMappers: Array<ComponentMapper<*>> =
         Array(ExEcs.componentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
-
-    /** Amount of IDs reserved for singletons.*/
-    @JvmField internal val reservedForSingletons = ExEcs.singletonEntityIDsResolver.size
 
     /** Singleton instances.*/
     @JvmField internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons) { null }
@@ -135,6 +137,9 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         val entityID = singletonEntity.entityID
         if (singletons[entityID] != null) return
         singletons[entityID] = singletonEntity
+        singletonEntity.componentsCache.fastForEachIndexed { index, component ->
+            componentMappers[index].unsafeSet(entityID, component)
+        }
         size++
         // add to fresh entities
         freshAddedEntities.add(entityID)
