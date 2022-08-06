@@ -7,14 +7,12 @@ import kotlin.reflect.KClass
 class ComponentTypeIDsResolver {
 
     internal val size: Int
-    private val fqNameToId: MutableMap<String, Int> = HashMap()
     private val classToIdMap: MutableMap<KClass<out Component>, Int> = HashMap()
     private val idToKClass: MutableMap<Int, KClass<out Component>> = HashMap()
 
     init {
         val allComponentClasses = ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(Component::class)
         for ((index, kClass) in allComponentClasses.withIndex()) {
-            fqNameToId[kClass.qualifiedName!!] = index
             classToIdMap[kClass] = index
             idToKClass[index] = kClass
             initCompanionIdField(kClass, index)
@@ -25,7 +23,6 @@ class ComponentTypeIDsResolver {
     fun idFor(componentClass: KClass<out Component>): Int =
         classToIdMap[componentClass] ?: throw IllegalStateException("Component ${componentClass.qualifiedName} is not registered")
 
-    fun idFor(fqName: String): Int = fqNameToId[fqName] ?: throw IllegalStateException("Component $fqName is not registered")
 
     fun typeById(id: Int): KClass<out Component> = idToKClass[id] ?: throw IllegalStateException("Component with type id $id is not registered")
 
@@ -35,6 +32,7 @@ class ComponentTypeIDsResolver {
             if (annotation.superType != Component::class || annotation.type != kClass) continue
             field.isAccessible = true
             field.set(null, id)
+            return
         }
     }
 

@@ -53,6 +53,7 @@ internal class EventTypeIDsResolver {
             if (annotation.superType != Event::class || annotation.type != kClass) continue
             field.isAccessible = true
             field.set(null, id)
+            return
         }
     }
 
