@@ -6,8 +6,16 @@ import com.rdude.exECS.aspect.AspectEntryElement
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.ActingEvent
+import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
 
+/** System that is being triggered every [World.act] method execution and iterates over the [Entities][Entity] it is subscribed to.
+ *
+ * Check [IterableEventSystem] for information about subscribing to Entities.
+ * @see System
+ * @see EventSystem
+ * @see IterableEventSystem
+ * @see ActingSystem*/
 abstract class IterableActingSystem(aspect: Aspect) : IterableEventSystem<ActingEvent>(aspect) {
 
     constructor(
@@ -130,6 +138,7 @@ abstract class IterableActingSystem(aspect: Aspect) : IterableEventSystem<Acting
         act(entity, event.delta)
     }
 
+    /** Implement this method to specify a behaviour when [ActingEvent] is fired.*/
     protected abstract fun act(entity: Entity, delta: Double)
 
 }

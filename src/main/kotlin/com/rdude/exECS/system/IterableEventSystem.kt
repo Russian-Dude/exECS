@@ -7,8 +7,49 @@ import com.rdude.exECS.aspect.EntitiesSubscription
 import com.rdude.exECS.component.*
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.Event
+import com.rdude.exECS.system.IterableEventSystem.Companion.and
 import kotlin.reflect.KClass
 
+/** System that Subscribes to [Events][Event] and [Entities][Entity]. Every time an Event of type [T] (or its subtype)
+ * is fired, [eventFired] method is called for every Entity this System is subscribed to.
+ * To add the behaviour before and after iteration over the Entities,
+ * [beforeIteration] and [afterIteration] methods can be overridden.
+ *
+ * To specify an Events, this System will be subscribed to, pass Event type as a generic parameter (see [EventSystem]).
+ *
+ * To specify to which Entities this System will subscribe to and track, an [Aspect] must be passed.
+ * The preferred way to do this is to pass the conditions an Entity must meet, separated by the [and] infix function
+ * to the constructor's named parameters.
+ *
+ * Constructor named parameters:
+ * * allOf - an Entity must satisfy all of these conditions
+ * * anyOf - an Entity must satisfy any of these conditions
+ * * exclude - an Entity must satisfy none of these conditions
+ * * only - same as anyOf but accepts only one condition
+ *
+ * Conditions can be represented by:
+ * * *'MyComponent::class'* - Entities that has a [Component] of the specified type
+ * * *'myComponentInstance'* - Entities that has a [ImmutableComponent] that is equals to the specified Component instance
+ * * *'MyComponent::class { value > 15 }'* - Entities that has an [ObservableComponent] of the specified type
+ * which is satisfied the given predicate. Observable component must also implement either [UniqueComponent] or [RichComponent]
+ *
+ * Example:
+ * ```
+ * class MyComponent : Component
+ *
+ * enum class Color : ImmutableComponent { RED, GREEN, BLUE }
+ *
+ * class ScoreComponent : ObservableIntComponent(), UniqueComponent
+ *
+ * class MySystem : IterableEventSystem<MyEvent>(
+ *      allOf = MyComponent::class and Color.RED,
+ *      exclude = ScoreComponent::class { value > 100 })
+ * ```
+ * @see System
+ * @see EventSystem
+ * @see ActingSystem
+ * @see IterableActingSystem
+ *  */
 abstract class IterableEventSystem<T : Event>(val aspect: Aspect) : EventSystem<T>() {
 
     @JvmField internal var entitiesSubscription: EntitiesSubscription? = null
@@ -131,24 +172,30 @@ abstract class IterableEventSystem<T : Event>(val aspect: Aspect) : EventSystem<
 
     constructor(only: AspectEntryElement) : this(Aspect(only = only))
 
-    protected open fun beforeIteration() {}
+    /** This method is called before this System starts iterating over the [Entities][Entity] it is subscribed to.
+     * @return Boolean value representing whether an iteration should be performed.
+     * If false, [eventFired] and [afterIteration] methods will not be executed.*/
+    protected open fun beforeIteration(): Boolean = true
 
+    /** This method is called after this System completes the iteration over the [Entities][Entity] it is subscribed to.*/
     protected open fun afterIteration() {}
 
+    /** Implement this method to specify a behaviour when an Event of type [T] (or its subtype) is fired.*/
     protected abstract fun eventFired(entity: Entity, event: T)
 
     final override fun eventFired(event: T) {
         // Exception should never occur
         val subscription = entitiesSubscription ?: throw NullPointerException("Entities subscription property of System of type ${this::class} is null")
-        beforeIteration()
-        subscription.entityIDs.forEach {
-            eventFired(Entity(it), event)
+        if (beforeIteration()) {
+            subscription.entityIDs.forEach {
+                eventFired(Entity(it), event)
+            }
+            afterIteration()
         }
-        afterIteration()
     }
 
 
-    // functions in this companion will be moved to extensions after updating Kotlin to the version that supports @Scope.
+    // functions in this companion will be moved to extensions after updating Kotlin to the version that supports both context and compiler plugins.
     protected companion object {
 
         @JvmStatic
