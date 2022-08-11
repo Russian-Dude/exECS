@@ -56,14 +56,14 @@ internal class PolymorphicEventsTest {
     @Test
     fun parentEventSystemTriggeredByChildEvents() {
         world.queueEvent(ChildEvent1())
-        world.act(0.0)
+        world.act()
         assert(parentEventSystem.fired)
     }
 
     @Test
     fun childEventSystemNotTriggeredByParentEvents() {
         world.queueEvent(ParentEvent())
-        world.act(0.0)
+        world.act()
         assertAll(
             { assertFalse(childEventSystem1.fired) },
             { assertFalse(childEventSystem2.fired) }

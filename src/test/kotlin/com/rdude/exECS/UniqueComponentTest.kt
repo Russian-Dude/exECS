@@ -39,7 +39,7 @@ class UniqueComponentTest {
         val uniqueComponent = TestUniqueComponent()
         world.createEntity(uniqueComponent)
         EntityUnoptimizedMethods.remove(uniqueComponent.getEntity(), world)
-        world.act(0.0)
+        world.act()
         world.createEntity(uniqueComponent)
     }
 

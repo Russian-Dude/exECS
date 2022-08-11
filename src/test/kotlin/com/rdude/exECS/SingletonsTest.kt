@@ -19,7 +19,7 @@ class SingletonsTest {
 
     class TestSystem : IterableActingSystem(only = TestComponent::class) {
         var foundComponent: TestComponent? = null
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: Entity) {
             foundComponent = entity.getComponent()
         }
     }
@@ -32,7 +32,7 @@ class SingletonsTest {
         world.registerSystem(system)
         world.addSingletonEntity(singleton)
         singleton.addComponent(TestComponent())
-        world.act(0.0)
+        world.act()
         assert(system.foundComponent == singleton.getComponent<TestComponent>())
     }
 

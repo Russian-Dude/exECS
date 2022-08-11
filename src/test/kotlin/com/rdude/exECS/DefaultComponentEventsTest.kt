@@ -105,7 +105,7 @@ internal class DefaultComponentEventsTest {
     fun componentAddedTest() {
         world.createEntity(StartComponent())
         world.queueEvent(NeedToAddComponent())
-        world.act(0.0)
+        world.act()
         assert(anyComponentAddedSystem1.component == component)
     }
 
@@ -125,7 +125,7 @@ internal class DefaultComponentEventsTest {
     @Order(4)
     fun componentRemovedTest() {
         world.queueEvent(NeedToRemoveComponentEvent())
-        world.act(0.0)
+        world.act()
         assert(anyComponentRemovedSystem1.component == component)
     }
 

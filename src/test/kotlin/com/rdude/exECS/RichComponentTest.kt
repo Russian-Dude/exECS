@@ -23,7 +23,7 @@ class RichComponentTest {
     fun addEntities() {
         world.createEntity(richComponent, simpleComponent)
         world.createEntity(richComponent)
-        world.act(0.0)
+        world.act()
     }
 
     @Test
@@ -47,7 +47,7 @@ class RichComponentTest {
     @Order(2)
     fun removeComponent() {
         EntityUnoptimizedMethods.removeComponent<TestRichComponent>(richComponent.insideEntitiesSet.first(), world)
-        world.act(0.0)
+        world.act()
         println(richComponent.insideEntitiesSet.size)
         assert(richComponent.insideEntitiesSet.size == 1)
     }
@@ -56,7 +56,7 @@ class RichComponentTest {
     @Order(3)
     fun removeEntity() {
         EntityUnoptimizedMethods.remove(richComponent.insideEntitiesSet.first(), world)
-        world.act(0.0)
+        world.act()
         assert(richComponent.insideEntitiesSet.size == 0)
     }
 

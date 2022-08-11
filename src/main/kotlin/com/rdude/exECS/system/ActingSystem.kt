@@ -10,9 +10,9 @@ import com.rdude.exECS.world.World
  * @see IterableActingSystem*/
 abstract class ActingSystem : EventSystem<ActingEvent>() {
 
-    final override fun eventFired(event: ActingEvent) = act(event.delta)
+    final override fun eventFired(event: ActingEvent) = act()
 
     /** Implement this method to specify a behaviour when [ActingEvent] is fired.*/
-    abstract fun act(delta: Double)
+    abstract fun act()
 
 }

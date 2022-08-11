@@ -135,10 +135,10 @@ abstract class IterableActingSystem(aspect: Aspect) : IterableEventSystem<Acting
 
 
     final override fun eventFired(entity: Entity, event: ActingEvent) {
-        act(entity, event.delta)
+        act(entity)
     }
 
     /** Implement this method to specify a behaviour when [ActingEvent] is fired.*/
-    protected abstract fun act(entity: Entity, delta: Double)
+    protected abstract fun act(entity: Entity)
 
 }

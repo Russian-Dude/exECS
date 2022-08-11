@@ -25,13 +25,13 @@ class PoolablesTest {
     class SimplePoolableComponent2 : PoolableComponent
 
     private inner class EntityRemoverSystem : IterableActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: Entity) {
             entity.remove()
         }
     }
 
     private inner class ComponentRemoverSystem : IterableActingSystem(anyOf = SimplePoolableComponent::class and SimplePoolableComponent2::class) {
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: Entity) {
             entity.removeComponent<SimplePoolableComponent>()
             entity.removeComponent<SimplePoolableComponent2>()
         }
@@ -85,7 +85,7 @@ class PoolablesTest {
         val event = fromPool<SimplePoolableEvent>()
         event.returnToPool()
         world.queueEvent<SimplePoolableEvent>()
-        world.act(0.0)
+        world.act()
         val afterAct = fromPool<SimplePoolableEvent>()
         assert(event === afterAct)
     }
@@ -97,7 +97,7 @@ class PoolablesTest {
         world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent>()
         world.createEntity(component)
-        world.act(0.0)
+        world.act()
         val component2 = fromPool<SimplePoolableComponent>()
         assert(component === component2)
     }
@@ -109,7 +109,7 @@ class PoolablesTest {
         world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent2>()
         world.createEntity(component)
-        world.act(0.0)
+        world.act()
         val component2 = fromPool<SimplePoolableComponent2>()
         assert(component === component2)
     }
@@ -121,7 +121,7 @@ class PoolablesTest {
         world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent>()
         world.createEntity(component)
-        world.act(0.0)
+        world.act()
         val component2 = fromPool<SimplePoolableComponent>()
         assert(component === component2)
     }
@@ -133,7 +133,7 @@ class PoolablesTest {
         world.registerSystem(system)
         val component = fromPool<SimplePoolableComponent2>()
         world.createEntity(component)
-        world.act(0.0)
+        world.act()
         val component2 = fromPool<SimplePoolableComponent2>()
         assert(component === component2)
     }

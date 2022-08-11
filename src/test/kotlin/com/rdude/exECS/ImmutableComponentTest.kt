@@ -17,14 +17,14 @@ class ImmutableComponentTest {
 
     private inner class System1 : IterableActingSystem(only = immutableComponent) {
         var immutableComponent: ImmutableComponent? = null
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: Entity) {
             immutableComponent = entity.getComponent<TestImmutableComponent>()
         }
     }
 
     private inner class System2 : IterableActingSystem(only = TestImmutableComponent::class) {
         var immutableComponent: ImmutableComponent? = null
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: Entity) {
             immutableComponent = entity.getComponent<TestImmutableComponent>()
         }
     }
@@ -41,7 +41,7 @@ class ImmutableComponentTest {
         world.registerSystem(system1)
         world.registerSystem(system2)
         world.createEntity(immutableComponent)
-        world.act(0.0)
+        world.act()
     }
 
     @Test

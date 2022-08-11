@@ -21,7 +21,7 @@ class SimpleWorldSnapshotTest {
     class TestEvent1 : Event
 
     class TestSystem1 : IterableActingSystem(anyOf = TestComponent1::class and TestComponent2::class) {
-        override fun act(entity: Entity, delta: Double) {}
+        override fun act(entity: Entity) {}
     }
 
     class TestSystem2 : EventSystem<TestEvent1>() {
@@ -41,7 +41,7 @@ class SimpleWorldSnapshotTest {
         world.createEntity(TestComponent1(), TestComponent2())
         world.createEntity(TestComponent2())
         world.createEntity(TestComponent1())
-        world.act(0.0)
+        world.act()
         world.queueEvent(TestEvent1())
         snapshot1 = world.snapshot()
         world2 = World(snapshot1)

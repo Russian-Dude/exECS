@@ -47,8 +47,6 @@ class World {
 
     @JvmField internal val systems = Array<System?>(ExEcs.systemTypeIDsResolver.size) { null }
 
-    @JvmField internal val actingEvent = ActingEvent(0.0)
-
     @JvmField internal val eventBus = EventBus(this)
 
     @JvmField internal val internalEventsFiringManager = InternalEventsFiringManager(this)
@@ -68,12 +66,11 @@ class World {
 
 
     /** Queues [ActingEvent], fires all queued [Events][Event].*/
-    fun act(delta: Double) {
+    fun act() {
         isCurrentlyActing = true
         // changes could have occurred outside of act method call, in which case subscriptions should be updated first.
         updateSubscriptions()
-        actingEvent.delta = delta
-        eventBus.queueEvent(actingEvent)
+        eventBus.queueEvent(ActingEvent)
         eventBus.fireEvents()
         if (internalChangeOccurred) {
             updateSubscriptions()

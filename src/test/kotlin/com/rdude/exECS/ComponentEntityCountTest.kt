@@ -19,7 +19,7 @@ internal class ComponentEntityCountTest {
     private inner class ComponentRemoverSystem(var removeCount: Int) :
         IterableActingSystem(anyOf = TestComponent1::class and TestComponent2::class) {
 
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: Entity) {
             if (removeCount > 0) {
                 entity.removeComponent<TestComponent1>()
                 entity.removeComponent<TestComponent2>()
@@ -56,7 +56,7 @@ internal class ComponentEntityCountTest {
             world.createEntity(component)
         }
         for (i in 0..10) {
-            world.act(0.0)
+            world.act()
         }
         assert(component.insideEntities == 8)
     }
@@ -69,7 +69,7 @@ internal class ComponentEntityCountTest {
             world.createEntity(component)
         }
         for (i in 0..10) {
-            world.act(0.0)
+            world.act()
         }
         assert(PoolableComponent.componentsToInsideEntitiesAmount[component] == 8)
     }
@@ -82,7 +82,7 @@ internal class ComponentEntityCountTest {
             world.createEntity(component)
         }
         for (i in 0..20) {
-            world.act(0.0)
+            world.act()
         }
         assert(component.insideEntities == 0)
     }
@@ -95,7 +95,7 @@ internal class ComponentEntityCountTest {
             world.createEntity(component)
         }
         for (i in 0..20) {
-            world.act(0.0)
+            world.act()
         }
         assert(PoolableComponent.componentsToInsideEntitiesAmount[component] == 0)
     }

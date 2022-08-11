@@ -63,7 +63,7 @@ class ObservableComponentTest {
 
     private class TestConditionSystem : IterableActingSystem(only = TestRichObservableValueComponent::class { value == TestEnum.AFTER }) {
         var fired = false
-        override fun act(entity: Entity, delta: Double) {
+        override fun act(entity: Entity) {
             fired = true
         }
     }
@@ -100,42 +100,42 @@ class ObservableComponentTest {
             testRichObservableValueComponent
         )
 
-        world.act(0.0)
+        world.act()
     }
 
 
     @Test
     fun simpleObservable() {
         testObservableComponent.componentChanged(TestChange())
-        world.act(0.0)
+        world.act()
         assert(testObservableSystem.fired)
     }
 
     @Test
     fun intObservable() {
         testObservableIntComponent.value = 717
-        world.act(0.0)
+        world.act()
         assert(testIntObservableSystem.value == 717)
     }
 
     @Test
     fun valueObservable() {
         testObservableValueComponent.value = TestEnum.AFTER
-        world.act(0.0)
+        world.act()
         assert(testValueObservableSystem.value == TestEnum.AFTER)
     }
 
     @Test
     fun nullableValueObservable1() {
         testObservableNullableValueComponent.value = TestEnum.AFTER
-        world.act(0.0)
+        world.act()
         assert(testNullableValueObservableSystem.value == TestEnum.AFTER)
     }
 
     @Test
     fun nullableValueObservable2() {
         testObservableNullableValueComponent.value = null
-        world.act(0.0)
+        world.act()
         assert(testNullableValueObservableSystem.value == null)
     }
 
@@ -143,7 +143,7 @@ class ObservableComponentTest {
     fun condition1() {
         testConditionSystem.fired = false
         testRichObservableValueComponent.value = TestEnum.BEFORE
-        world.act(0.0)
+        world.act()
         assert(!testConditionSystem.fired)
     }
 
@@ -151,7 +151,7 @@ class ObservableComponentTest {
     fun condition2() {
         testConditionSystem.fired = false
         testRichObservableValueComponent.value = TestEnum.AFTER
-        world.act(0.0)
+        world.act()
         assert(testConditionSystem.fired)
     }
 

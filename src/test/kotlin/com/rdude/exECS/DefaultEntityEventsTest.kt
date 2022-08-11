@@ -68,7 +68,7 @@ internal class DefaultEntityEventsTest {
     @Order(1)
     fun entityAdded() {
         world.createEntity(checkComponent)
-        world.act(0.0)
+        world.act()
         assertAll(
             { assert(entityAddedSystem.component == checkComponent) },
             { assert(entityRemovedSystem.component == null) })
@@ -78,14 +78,14 @@ internal class DefaultEntityEventsTest {
     @Order(2)
     fun entityRemoved() {
         world.queueEvent(NeedToRemoveEntityEvent())
-        world.act(0.0)
+        world.act()
         assert(entityRemovedSystem.component == checkComponent)
     }
 
     @Test
     @Order(3)
     fun entityWithComponentsWasNotAddedYet() {
-        world.act(0.0)
+        world.act()
         assert(entityAddedWithConcreteComponentSystem.component == null)
     }
 
@@ -93,7 +93,7 @@ internal class DefaultEntityEventsTest {
     @Order(4)
     fun entityWithWrongComponentAdded() {
         world.createEntity(Component2())
-        world.act(0.0)
+        world.act()
         assert(entityAddedWithConcreteComponentSystem.component == null)
     }
 
@@ -102,7 +102,7 @@ internal class DefaultEntityEventsTest {
     fun entityWithCorrectComponentAdded() {
         checkComponent = CheckComponent()
         world.createEntity(checkComponent, Component1())
-        world.act(0.0)
+        world.act()
         assert(entityAddedWithConcreteComponentSystem.component == checkComponent)
     }
 
