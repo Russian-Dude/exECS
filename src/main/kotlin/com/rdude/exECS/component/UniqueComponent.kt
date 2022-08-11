@@ -21,11 +21,11 @@ interface UniqueComponent : Component, CanBeObservedBySystem {
     /** Is this component is plugged into any [Entity]. */
     val isInsideEntity: Boolean get() = entityId >= 0
 
-    /** Get [Entity] of an entity this component is plugged into, or throw if there is no entity. */
+    /** Get [Entity] this component is plugged into, or throw if there is no entity. */
     fun getEntityOrThrow() =
         if (isInsideEntity) Entity(entityId) else throw IllegalStateException("Component is not plugged into an entity")
 
-    /** Get [Entity] of an entity this component is plugged into, or [Entity.NO_ENTITY] if there is no entity. */
+    /** Get [Entity] this component is plugged into, or [Entity.NO_ENTITY] if there is no entity. */
     fun getEntity() = Entity(entityId)
 
 
