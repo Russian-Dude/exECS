@@ -13,11 +13,16 @@ class Pool<T : Poolable>(private val supplier: () -> T, kClass: KClass<T>) {
             t = supplier.invoke()
             t.pool = this as Pool<Poolable>
         }
+        t.isInPool = false
         return t
     }
 
-    fun retrieve(t: T)  {
+    fun add(t: T)  {
         t.reset()
+        if (t.isInPool) {
+            throw IllegalStateException("Can not add Poolable $this to the Pool. It is already in the Pool.")
+        }
+        t.isInPool = true
         queue.add(t)
     }
 

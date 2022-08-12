@@ -5,6 +5,7 @@ import com.rdude.exECS.event.Event
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.exception.PoolNotSetException
 import com.rdude.exECS.utils.ExEcs
+import java.util.IdentityHashMap
 
 /** [Poolables][Poolable] can be used to reduce Garbage Collector calls.
  *
@@ -35,12 +36,22 @@ interface Poolable {
         get() = ExEcs.defaultPools.customPools[this] ?: ExEcs.defaultPools[this::class]
         set(value) { ExEcs.defaultPools.customPools[this] = value }
 
+    /** True if this Poolable is in [Pool], false if this Poolable is obtained.*/
+    var isInPool: Boolean
+
     /** Returns this Poolable to the [pool].
      * @throws PoolNotSetException if [pool] property is null.*/
-    fun returnToPool() = pool?.retrieve(this) ?: throw PoolNotSetException(this::class)
+    fun returnToPool() = pool?.add(this) ?: throw PoolNotSetException(this::class)
 
     /** This method is called every time this Poolable is returned to [Pool].
      * Default implementation do nothing.*/
     fun reset() {}
+
+    companion object {
+
+        /** This map is used to store [isInPool] values only for those Poolable subclasses that were compiled without exECS plugin.*/
+        internal val isInPoolMap = IdentityHashMap<Poolable, Boolean>()
+
+    }
 
 }
