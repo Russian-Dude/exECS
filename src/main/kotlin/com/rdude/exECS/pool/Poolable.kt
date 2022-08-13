@@ -36,8 +36,13 @@ interface Poolable {
         get() = ExEcs.defaultPools.customPools[this] ?: ExEcs.defaultPools[this::class]
         set(value) { ExEcs.defaultPools.customPools[this] = value }
 
-    /** True if this Poolable is in [Pool], false if this Poolable is obtained.*/
+    /** True if this Poolable is in [Pool], false if this Poolable is obtained.
+     *
+     * If exECS compiler plugin is enabled and this property is not overridden by user, it will be overridden
+     * by [generated](https://github.com/Russian-Dude/execs-plugin/wiki/Poolables-optimizations) property at compile time.*/
     var isInPool: Boolean
+        get() = isInPoolMap[this] == true
+        set(value) { isInPoolMap[this] = value }
 
     /** Returns this Poolable to the [pool].
      * @throws PoolNotSetException if [pool] property is null.*/
