@@ -53,10 +53,10 @@ internal class EventSystemGenericQualifier {
         // if event is simple
         else {
             componentIds = intArrayOf()
-            val eventClasses = ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(eventKClass)
-            if (!eventKClass.isAbstract && !eventKClass.java.isInterface) {
-                (eventClasses as MutableList).add(eventKClass)
-            }
+            val eventClasses: MutableList<KClass<out Event>> =
+                if (!eventKClass.isAbstract && !eventKClass.java.isInterface) mutableListOf(eventKClass)
+                else mutableListOf()
+            eventClasses.addAll(ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(eventKClass))
             eventIds = eventClasses
                 .map { it.eventTypeId }
                 .toIntArray()
