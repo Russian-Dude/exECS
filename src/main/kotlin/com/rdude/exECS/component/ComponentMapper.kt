@@ -58,10 +58,10 @@ class ComponentMapper<T : Component> private constructor(
         world.internalChangeOccurred = true
     }
 
-    fun addComponent(id: Int, component: T): T {
+    fun addComponent(id: Int, component: T) {
         val removedComponent = backingArray[id]
         // if adding same component just return it
-        if (removedComponent == component) return removedComponent
+        if (removedComponent == component) return
         // if component was replaced update removed component states if needed
         if (removedComponent != null) {
             stateManager?.componentRemovedUnsafe(removedComponent, id)
@@ -86,13 +86,7 @@ class ComponentMapper<T : Component> private constructor(
         }
         // notify about internal change
         world.internalChangeOccurred = true
-        return component
-    }
-
-    inline fun addComponent(id: Int, component: T, apply: T.() -> Unit): T {
-        apply.invoke(component)
-        addComponent(id, component)
-        return component
+        return
     }
 
     internal fun removeComponentSilently(id: Int, sendComponentPresenceChange: Boolean = false) {

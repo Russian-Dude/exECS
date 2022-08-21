@@ -3,11 +3,7 @@ package com.rdude.exECS.world
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.entity.SingletonEntity
-import com.rdude.exECS.event.ComponentAddedEvent
-import com.rdude.exECS.event.ComponentRemovedEvent
-import com.rdude.exECS.event.EntityRemovedEvent
-import com.rdude.exECS.event.EntityAddedEvent
-import com.rdude.exECS.event.Event
+import com.rdude.exECS.event.*
 import com.rdude.exECS.exception.AlreadyRegisteredException
 import com.rdude.exECS.exception.DefaultPoolNotExistException
 import com.rdude.exECS.exception.EmptyEntityException
@@ -77,8 +73,8 @@ abstract class WorldAccessor {
 
     /** Queues the given [event].
      * @throws [WorldNotSetException] if [world] property is null*/
-     protected fun queueEvent(event: Event) =
-        world?.queueEvent(event) ?: throw WorldNotSetException(this)
+     protected fun queueEvent(event: Event, priority: EventPriority = event.defaultPriority()) =
+        world?.queueEvent(event, priority) ?: throw WorldNotSetException(this)
 
 
     /** Obtains an [Event] of type [T] from the default Pool and queues it.
@@ -88,11 +84,25 @@ abstract class WorldAccessor {
         world?.queueEvent<T>() ?: throw WorldNotSetException(this)
 
 
+    /** Obtains an [Event] of type [T] from the default Pool and queues it.
+     * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist
+     * @throws [WorldNotSetException] if [world] property is null*/
+    protected inline fun <reified T> queueEvent(priority: EventPriority) where T : Event, T : Poolable =
+        world?.queueEvent<T>(priority) ?: throw WorldNotSetException(this)
+
+
     /** Obtains an [Event] of type [T] from the default Pool, applies [apply] function to it and queues this Event.
      * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist
      * @throws [WorldNotSetException] if [world] property is null*/
     protected inline fun <reified T> queueEvent(apply: T.() -> Unit) where T : Event, T : Poolable =
         world?.queueEvent(apply) ?: throw WorldNotSetException(this)
+
+
+    /** Obtains an [Event] of type [T] from the default Pool, applies [apply] function to it and queues this Event.
+     * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist
+     * @throws [WorldNotSetException] if [world] property is null*/
+    protected inline fun <reified T> queueEvent(priority: EventPriority, apply: T.() -> Unit) where T : Event, T : Poolable =
+        world?.queueEvent(priority, apply) ?: throw WorldNotSetException(this)
 
 
     /** @return [SingletonEntity] of type [T] or null if Singleton with this type is not registered in the [world].
@@ -207,22 +217,18 @@ abstract class WorldAccessor {
      * Queues [ComponentAddedEvent]  if Component has been added.
      * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist
      * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
-    protected inline fun <reified T> Entity.addComponent(): T where T : Component, T : Poolable {
-        val component = fromPool<T>()
-        addComponent(component)
-        return component
-    }
+    protected inline fun <reified T> Entity.addComponent() where T : Component, T : Poolable =
+        addComponent(fromPool<T>())
 
 
     /** Obtains [Component] of type [T] from the default Pool, apply [apply] function to this [Component] and adds it
      * to this Entity. Queues [ComponentAddedEvent] if Component has been added.
      * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist
      * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
-    protected inline fun <reified T> Entity.addComponent(apply: T.() -> Unit): T where T : Component, T : Poolable {
+    protected inline fun <reified T> Entity.addComponent(apply: T.() -> Unit) where T : Component, T : Poolable {
         val component = fromPool<T>()
         apply.invoke(component)
         addComponent(component)
-        return component
     }
 
 

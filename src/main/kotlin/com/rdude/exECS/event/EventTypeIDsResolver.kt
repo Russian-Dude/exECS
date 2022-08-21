@@ -1,6 +1,5 @@
 package com.rdude.exECS.event
 
-import com.rdude.exECS.plugin.GeneratedTypeIdProperty
 import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -20,7 +19,6 @@ internal class EventTypeIDsResolver {
         size = allNotInternalEventClasses.size + internalEventsSize
 
         classToIdMap += allNotInternalEventClasses
-            .onEachIndexed { index, kClass -> initCompanionIdField(kClass, index + internalEventsSize) }
             .mapIndexed { index, kClass -> Pair(kClass, index + internalEventsSize) }
             .toMap()
 
@@ -44,17 +42,6 @@ internal class EventTypeIDsResolver {
         // currently there are 3 component related events: added (offset = 0), removed(offset = 1) and changed(offset = 2)
         val componentRelatedEventsIdsAmount = ExEcs.componentTypeIDsResolver.size * 3
         return 3 + componentRelatedEventsIdsAmount
-    }
-
-
-    private fun initCompanionIdField(kClass: KClass<out Event>, id: Int) {
-        for (field in kClass.java.fields) {
-            val annotation = field.getAnnotation(GeneratedTypeIdProperty::class.java) ?: continue
-            if (annotation.superType != Event::class || annotation.type != kClass) continue
-            field.isAccessible = true
-            field.set(null, id)
-            return
-        }
     }
 
 }

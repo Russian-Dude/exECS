@@ -17,7 +17,9 @@ internal class FakePoolableComponentStateManager(world: World) : ComponentStateM
 
     override fun componentRemoved(component: Component, entityId: Int) {
         val insideEntities = PoolableComponent.componentsToInsideEntitiesAmount.decreaseCount(component)
-        if (insideEntities == 0) world.poolablesManager.poolableNeedsToBeReturnedToPool(component as Poolable)
+        if (insideEntities == 0 && world.configuration.autoReturnPoolableComponentsToPool) {
+            world.poolablesManager.poolableNeedsToBeReturnedToPool(component as Poolable)
+        }
     }
 
     override fun componentChangedId(component: Component, from: Int, to: Int) {

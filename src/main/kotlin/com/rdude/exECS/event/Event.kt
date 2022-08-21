@@ -1,18 +1,21 @@
 package com.rdude.exECS.event
 
-import com.rdude.exECS.utils.ExEcs
-import com.rdude.exECS.system.System
-import com.rdude.exECS.system.IterableEventSystem
-import com.rdude.exECS.system.EventSystem
-import com.rdude.exECS.world.World
-import com.rdude.exECS.pool.Poolable
+import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.pool.Pool
+import com.rdude.exECS.pool.Poolable
+import com.rdude.exECS.system.EventSystem
+import com.rdude.exECS.system.IterableEventSystem
+import com.rdude.exECS.system.System
+import com.rdude.exECS.utils.ExEcs
+import com.rdude.exECS.world.World
 
-/** Events are preferred way to communicate between [Systems][System]. To create your own Event implement this interface.
+/** Events are preferred way to communicate between [Systems][System].
+ * Ideally events should not have any behaviour and be used only as data storages.
+ * To create your own Event implement this interface.
  *
- * To queue an Event call [System.queueEvent] or [World.queueEvent].
+ * To queue an Event call [System.queueEvent], [World.queueEvent] or [SingletonEntity.queueEvent].
  *
- * [Poolable] Events will be returned to the [Pool] automatically after they are processed by the Event Bus.
+ * By default, [Poolable] Events will be returned to the [Pool] automatically after they are processed by the Event Bus.
  *
  * @see IterableEventSystem
  * @see EventSystem
@@ -23,6 +26,10 @@ import com.rdude.exECS.pool.Pool
  * @see EntityAddedEvent
  * @see EntityRemovedEvent*/
 interface Event {
+
+
+    /** Events with higher priority will be fired first. Override this method to set default priority.*/
+    fun defaultPriority(): EventPriority = EventPriority.MEDIUM
 
     /** Get ID of the event type.
      *

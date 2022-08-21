@@ -1,9 +1,13 @@
 package com.rdude.exECS.pool
 
 import com.rdude.exECS.component.Component
+import com.rdude.exECS.config.WorldConfiguration
+import com.rdude.exECS.config.ExEcsGlobalConfiguration
+import com.rdude.exECS.config.OnPoolIsNotSet
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.exception.PoolNotSetException
+import com.rdude.exECS.exception.DefaultPoolNotExistException
 import com.rdude.exECS.utils.ExEcs
 import java.util.IdentityHashMap
 
@@ -11,11 +15,13 @@ import java.util.IdentityHashMap
  *
  * [Components][Component] that implement this interface, will automatically be returned to the [Pool] when the [Component] is removed
  * from an [Entity] and there are no other [Entities][Entity] containing that [Component].
+ * This behavior can be changed with [WorldConfiguration.autoReturnPoolableComponentsToPool]
  *
  * [Events][Event] that implementing this interface, will be automatically returned to the [Pool] after being fired.
+ * This behavior can be changed with [WorldConfiguration.autoReturnPoolableEventsToPool]
  *
  * Default [Pool] will be generated for every non abstract [Poolable] class. To obtain [Poolable] from the default Pool
- * call [fromPool] method.
+ * call [fromPool] function.
  *
  * ```
  * val myPoolable = fromPool<MyPoolable>() // obtain from the default Pool
@@ -45,8 +51,19 @@ interface Poolable {
         set(value) { isInPoolMap[this] = value }
 
     /** Returns this Poolable to the [pool].
-     * @throws PoolNotSetException if [pool] property is null.*/
-    fun returnToPool() = pool?.add(this) ?: throw PoolNotSetException(this::class)
+     * @throws PoolNotSetException if [pool] property is null
+     * and [ExEcsGlobalConfiguration.onPoolIsNotSet] is set to [OnPoolIsNotSet.THROW].
+     * @throws DefaultPoolNotExistException if [pool] is null
+     * and [ExEcsGlobalConfiguration.onPoolIsNotSet] is set to [OnPoolIsNotSet.RETURN_TO_DEFAULT_POOL]
+     * and the default Pool for the type of this Poolable does not exist.*/
+    fun returnToPool() {
+        pool?.add(this)
+            ?: if (ExEcsGlobalConfiguration.onPoolIsNotSet == OnPoolIsNotSet.THROW) throw PoolNotSetException(this::class)
+            else if (ExEcsGlobalConfiguration.onPoolIsNotSet == OnPoolIsNotSet.RETURN_TO_DEFAULT_POOL) {
+                pool = ExEcs.defaultPools.defaultPool(this::class)
+                returnToPool()
+            }
+    }
 
     /** This method is called every time this Poolable is returned to [Pool].
      * Default implementation do nothing.*/

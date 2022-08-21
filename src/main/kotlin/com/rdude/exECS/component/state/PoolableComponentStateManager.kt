@@ -13,7 +13,9 @@ internal class PoolableComponentStateManager(world: World) : ComponentStateManag
 
     override fun componentRemoved(component: PoolableComponent, entityId: Int) {
         component.insideEntities--
-        if (component.insideEntities == 0) world.poolablesManager.poolableNeedsToBeReturnedToPool(component as Poolable)
+        if (component.insideEntities == 0 && world.configuration.autoReturnPoolableComponentsToPool) {
+            world.poolablesManager.poolableNeedsToBeReturnedToPool(component as Poolable)
+        }
     }
 
     override fun componentChangedId(component: PoolableComponent, from: Int, to: Int) {

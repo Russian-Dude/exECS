@@ -28,3 +28,10 @@ annotation class GeneratedTypeIdProperty(val superType: KClass<*>, val type: KCl
 annotation class GeneratedDefaultPoolProperty(val type: KClass<out Poolable>)
 
 
+/** If exECS compiler plugin is enabled, IR dump (after applying plugin) of an element annotated with this annotation
+ * will be printed as a warning message at compile time.*/
+@Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.PROPERTY, AnnotationTarget.CLASS, AnnotationTarget.CONSTRUCTOR, AnnotationTarget.FUNCTION)
+annotation class DebugIR
+
+

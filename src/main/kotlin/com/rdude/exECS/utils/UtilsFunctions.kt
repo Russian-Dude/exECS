@@ -25,12 +25,16 @@ internal inline fun <T> MutableMap<T, Int>.increaseCount(key: T): Int {
     return result
 }
 
+@PublishedApi
 internal val KClass<out Component>.componentTypeId get() = ExEcs.componentTypeIDsResolver.idFor(this)
 
+@PublishedApi
 internal val KClass<out Event>.eventTypeId get() = ExEcs.eventTypeIDsResolver.idFor(this)
 
+@PublishedApi
 internal val KClass<out SingletonEntity>.singletonTypeId get() = ExEcs.singletonEntityIDsResolver.idFor(this)
 
+@PublishedApi
 internal val KClass<out System>.systemTypeId get() = ExEcs.systemTypeIDsResolver.idFor(this)
 
 internal val EventSystem<*>.eventsTypesSubscription get() = ExEcs.eventSystemGenericQualifier.getEventsTypesSubscriptionForSystem(this)

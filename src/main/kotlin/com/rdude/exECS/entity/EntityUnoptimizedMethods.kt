@@ -53,21 +53,20 @@ object EntityUnoptimizedMethods {
 
 
     /** Obtains [Component] of type [T] from the default Pool and adds it to the [entity]. Fires [ComponentAddedEvent].*/
-    fun <T> addComponent(entity: Entity, type: KClass<T>, world: World): T where T : Component, T : Poolable {
-        val component = (ExEcs.defaultPools[type]?.obtain() ?: throw DefaultPoolNotExistException(type)) as T
+    fun <T> addComponent(entity: Entity, type: KClass<T>, world: World) where T : Component, T : Poolable {
+        val component = ExEcs.defaultPools[type].obtain() as T
         world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entity.id, component)
-        return component
     }
 
 
     /** Obtains [Component] of type [T] from the default Pool and adds it to the [entity]. Fires [ComponentAddedEvent].*/
-    inline fun <reified T> addComponent(entity: Entity, world: World): T where T : Component, T : Poolable =
+    inline fun <reified T> addComponent(entity: Entity, world: World) where T : Component, T : Poolable =
         addComponent(entity, T::class, world)
 
 
     /** Obtains [Component] of type [T] from the default Pool, apply [apply] function to this [Component] and adds it
      *  to the [entity]. Fires [ComponentAddedEvent].*/
-    inline fun <reified T> addComponent(entity: Entity, world: World, apply: T.() -> Unit): T where T : Component, T : Poolable {
+    inline fun <reified T> addComponent(entity: Entity, world: World, apply: T.() -> Unit) where T : Component, T : Poolable {
         val component = fromPool<T>()
         apply.invoke(component)
         return addComponent(entity, component::class, world)

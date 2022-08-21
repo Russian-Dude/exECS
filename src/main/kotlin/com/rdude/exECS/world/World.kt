@@ -5,6 +5,7 @@ import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentChange
 import com.rdude.exECS.component.ObservableComponent
 import com.rdude.exECS.component.ObservableComponentChangeManager
+import com.rdude.exECS.config.WorldConfiguration
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.entity.EntityMapper
 import com.rdude.exECS.entity.SingletonEntity
@@ -29,9 +30,7 @@ import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.systemTypeId
 import kotlin.reflect.KClass
 
-/** Core element of the exECS. Every World instance stores [Systems][System] and [Components][Component],
- * maintains relations between [Entities][Entity] and Components, updates Systems subscriptions to Components and [Events][Event],
- * fires queued Events and process through the registered Systems.*/
+/** Core element of the exECS. Stores and manages [Events][Event], [Entities][Entity], [Components][Component] and [Systems][System].*/
 class World {
 
     @JvmField internal val subscriptionsManager: SubscriptionsManager
@@ -64,13 +63,17 @@ class World {
     var isCurrentlyActing = false
         private set
 
+    @JvmField val configuration = WorldConfiguration()
+
+    @JvmField val utils = WorldUtils(this)
+
 
     /** Queues [ActingEvent], fires all queued [Events][Event].*/
     fun act() {
         isCurrentlyActing = true
         // changes could have occurred outside of act method call, in which case subscriptions should be updated first.
         updateSubscriptions()
-        eventBus.queueEvent(ActingEvent)
+        eventBus.queueEvent(ActingEvent, configuration.actingEventPriority)
         eventBus.fireEvents()
         if (internalChangeOccurred) {
             updateSubscriptions()
@@ -83,7 +86,7 @@ class World {
 
 
     /** Queues the given [event].*/
-    fun queueEvent(event: Event) = eventBus.queueEvent(event)
+    fun queueEvent(event: Event, priority: EventPriority = event.defaultPriority()) = eventBus.queueEvent(event, priority)
 
 
     /** Obtains an [Event] of type [T] from the default Pool and queues it.
@@ -91,10 +94,21 @@ class World {
     inline fun <reified T> queueEvent() where T : Event, T : Poolable = queueEvent(fromPool<T>())
 
 
+    /** Obtains an [Event] of type [T] from the default Pool and queues it.
+     * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist*/
+    inline fun <reified T> queueEvent(priority: EventPriority) where T : Event, T : Poolable = queueEvent(fromPool<T>(), priority)
+
+
     /** Obtains an [Event] of type [T] from the default Pool, applies [apply] function to it and queues this Event.
      * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist */
     inline fun <reified T> queueEvent(apply: T.() -> Unit) where T : Event, T : Poolable =
         queueEvent(fromPool<T>().apply { apply.invoke(this) })
+
+
+    /** Obtains an [Event] of type [T] from the default Pool, applies [apply] function to it and queues this Event.
+     * @throws [DefaultPoolNotExistException] if default Pool for type [T] does not exist */
+    inline fun <reified T> queueEvent(priority: EventPriority, apply: T.() -> Unit) where T : Event, T : Poolable =
+        queueEvent(fromPool<T>().apply { apply.invoke(this) }, priority)
 
 
     /** Creates an Entity with given components. At least one component must be passed to the arguments.
