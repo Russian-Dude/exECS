@@ -36,10 +36,15 @@ internal class DefaultPools {
 
     @Suppress("UNCHECKED_CAST")
     private fun findGeneratedDefaultPool(forPoolable: KClass<out Poolable>): Pool<Poolable>? {
-        val poolProperty = forPoolable::class.companionObject?.memberProperties
+        val companion = forPoolable.companionObject ?: return null
+        val companionObjectField = forPoolable.java.fields
+            .find { it.type == companion.java } ?: return null
+        companionObjectField.isAccessible = true
+        val companionInstance = companionObjectField.get(null)
+        val poolProperty = forPoolable.companionObject?.memberProperties
             ?.find { it.findAnnotation<GeneratedDefaultPoolProperty>()?.type == forPoolable }
             ?: return null
-        return poolProperty.call(forPoolable::class.companionObjectInstance!!) as Pool<Poolable>
+        return poolProperty.call(companionInstance) as Pool<Poolable>
     }
 
     private fun <T : Poolable> findConstructor(forPoolable: KClass<T>): KFunction<T>? {
