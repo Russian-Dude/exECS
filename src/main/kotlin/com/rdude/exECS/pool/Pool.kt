@@ -1,9 +1,12 @@
 package com.rdude.exECS.pool
 
+import com.rdude.exECS.config.ExEcsGlobalConfiguration
+import com.rdude.exECS.config.OnAlreadyInPool
+import com.rdude.exECS.exception.AlreadyInPoolException
 import com.rdude.exECS.utils.collections.ArrayStack
 import kotlin.reflect.KClass
 
-class Pool<T : Poolable>(private val supplier: () -> T, kClass: KClass<T>) {
+class Pool<T : Poolable> @PublishedApi internal constructor(private val supplier: () -> T, kClass: KClass<T>) {
 
     private val stack: ArrayStack<T> = ArrayStack(kClass)
 
@@ -17,13 +20,16 @@ class Pool<T : Poolable>(private val supplier: () -> T, kClass: KClass<T>) {
         return t
     }
 
-    fun add(t: T)  {
-        t.reset()
+    fun add(t: T) {
         if (t.isInPool) {
-            throw IllegalStateException("Can not add Poolable $this to the Pool. It is already in the Pool.")
+            if (ExEcsGlobalConfiguration.onAlreadyInPool == OnAlreadyInPool.THROW)
+                throw AlreadyInPoolException(t::class)
         }
-        t.isInPool = true
-        stack.add(t)
+        else {
+            t.reset()
+            t.isInPool = true
+            stack.add(t)
+        }
     }
 
     companion object {

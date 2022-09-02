@@ -2,9 +2,9 @@ package com.rdude.exECS.config
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.Entity
+import com.rdude.exECS.event.ActingEvent
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.event.EventPriority
-import com.rdude.exECS.event.ActingEvent
 import com.rdude.exECS.pool.Pool
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.world.World
@@ -36,6 +36,11 @@ object ExEcsGlobalConfiguration {
     /** Describes what happens when [Poolable.returnToPool] is called and [Poolable.pool] is null.*/
     @JvmField
     var onPoolIsNotSet: OnPoolIsNotSet = OnPoolIsNotSet.THROW
+
+
+    /** Describes what happens when [Poolable.returnToPool] is called but [Poolable] is already in [Pool] ([Poolable.isInPool] is true).*/
+    @JvmField
+    var onAlreadyInPool: OnAlreadyInPool = OnAlreadyInPool.THROW
 
 
     /** [EventPriority] of [ActingEvent].
