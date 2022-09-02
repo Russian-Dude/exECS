@@ -5,10 +5,10 @@ import kotlin.reflect.KClass
 
 class Pool<T : Poolable>(private val supplier: () -> T, kClass: KClass<T>) {
 
-    private val queue: ArrayStack<T> by lazy { ArrayStack(kClass) }
+    private val stack: ArrayStack<T> = ArrayStack(kClass)
 
     fun obtain() : T {
-        var t = queue.poll()
+        var t = stack.poll()
         if (t == null) {
             t = supplier.invoke()
             t.pool = this as Pool<Poolable>
@@ -23,7 +23,7 @@ class Pool<T : Poolable>(private val supplier: () -> T, kClass: KClass<T>) {
             throw IllegalStateException("Can not add Poolable $this to the Pool. It is already in the Pool.")
         }
         t.isInPool = true
-        queue.add(t)
+        stack.add(t)
     }
 
     companion object {
