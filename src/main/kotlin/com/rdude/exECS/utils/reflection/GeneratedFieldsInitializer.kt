@@ -2,9 +2,9 @@ package com.rdude.exECS.utils.reflection
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.SingletonEntity
-import com.rdude.exECS.plugin.GeneratedComponentMapperProperty
-import com.rdude.exECS.plugin.GeneratedSingletonEntityProperty
-import com.rdude.exECS.plugin.GeneratedSystemProperty
+import com.rdude.exECS.plugin.CachedComponentMapperProperty
+import com.rdude.exECS.plugin.CachedSingletonEntityProperty
+import com.rdude.exECS.plugin.CachedSystemProperty
 import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IterableArray
@@ -29,7 +29,7 @@ internal class GeneratedFieldsInitializer {
                 for (field in ownerClass.java.declaredFields) {
 
                     // if field type is component mapper
-                    val componentMapperAnnotation = field.getAnnotation(GeneratedComponentMapperProperty::class.java)
+                    val componentMapperAnnotation = field.getAnnotation(CachedComponentMapperProperty::class.java)
                     if (componentMapperAnnotation != null) {
                         if (entry == null) entry = ClassEntry.from(ownerClass)
                         entry.componentMapperFields[componentMapperAnnotation.componentType] = field
@@ -38,7 +38,7 @@ internal class GeneratedFieldsInitializer {
                     }
 
                     // if field type is singleton entity
-                    val singletonAnnotation = field.getAnnotation(GeneratedSingletonEntityProperty::class.java)
+                    val singletonAnnotation = field.getAnnotation(CachedSingletonEntityProperty::class.java)
                     if (singletonAnnotation != null) {
                         if (entry == null) entry = ClassEntry.from(ownerClass)
                         val singletonType = singletonAnnotation.singletonType
@@ -50,7 +50,7 @@ internal class GeneratedFieldsInitializer {
                     }
 
                     // if field type is system
-                    val systemAnnotation = field.getAnnotation(GeneratedSystemProperty::class.java)
+                    val systemAnnotation = field.getAnnotation(CachedSystemProperty::class.java)
                     if (systemAnnotation != null) {
                         if (entry == null) entry = ClassEntry.from(ownerClass)
                         val systemType = systemAnnotation.systemType

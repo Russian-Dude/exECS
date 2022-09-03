@@ -7,15 +7,15 @@ import com.rdude.exECS.system.System
 import kotlin.reflect.KClass
 
 @Target(AnnotationTarget.FIELD, AnnotationTarget.PROPERTY)
-annotation class GeneratedComponentMapperProperty(val componentType: KClass<out Component>)
+annotation class CachedComponentMapperProperty(val componentType: KClass<out Component>)
 
 
 @Target(AnnotationTarget.FIELD, AnnotationTarget.PROPERTY)
-annotation class GeneratedSingletonEntityProperty(val singletonType: KClass<out SingletonEntity>)
+annotation class CachedSingletonEntityProperty(val singletonType: KClass<out SingletonEntity>)
 
 
 @Target(AnnotationTarget.FIELD, AnnotationTarget.PROPERTY)
-annotation class GeneratedSystemProperty(val systemType: KClass<out System>)
+annotation class CachedSystemProperty(val systemType: KClass<out System>)
 
 
 /** @param superType Event, Component etc
