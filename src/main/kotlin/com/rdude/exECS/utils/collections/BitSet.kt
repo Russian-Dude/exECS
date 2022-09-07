@@ -3,7 +3,6 @@ package com.rdude.exECS.utils.collections
 class BitSet(size: Int = 1) {
 
     private var data: LongArray = LongArray(size / 64 + 1) { 0 }
-    private var setAmount = 0
 
     operator fun get(index: Int) : Boolean  {
         val word = index ushr 6
@@ -15,36 +14,44 @@ class BitSet(size: Int = 1) {
     fun set(index: Int) {
         val word = index ushr 6
         growIfNeeded(index)
-        if (!get(index)) setAmount++
         data[word] = data[word] or (1L shl index)
     }
 
     fun clear(index: Int) {
         val word = index ushr 6
         if (data.size <= word) return
-        if (get(index)) setAmount--
         data[word] = data[word] and (1L shl index).inv()
-    }
-
-    private fun grow() {
-        data = data.copyOf(data.size * 2)
-    }
-
-    private fun growIfNeeded(matchArray: Array<*>) {
-        while (data.size * 64 < matchArray.size) {
-            grow()
-        }
-    }
-
-    private fun growIfNeeded(size: Int) {
-        while (data.size * 64 <= size) {
-            grow()
-        }
     }
 
     fun clear()  {
         data.fill(0L)
-        setAmount = 0
+    }
+
+    private fun grow(newSize: Int) {
+        data = data.copyOf(newSize)
+    }
+
+    private fun growIfNeeded(matchArray: Array<*>) {
+        if (data.size shl 6 < matchArray.size) {
+            grow(getNewSize(data.size, matchArray.size ushr 6))
+        }
+    }
+
+    private fun growIfNeeded(size: Int) {
+        if (data.size shl 6 < size) {
+            grow(getNewSize(data.size, size ushr 6))
+        }
+    }
+
+    private fun getNewSize(oldSize: Int, minSize: Int): Int {
+        var newSize = oldSize
+        while (newSize < minSize) {
+            newSize = newSize shl 1
+            if (newSize < oldSize) {
+                newSize = minSize + 1
+            }
+        }
+        return newSize
     }
 
 }
