@@ -5,10 +5,6 @@ import java.util.*
 
 /** Rich component is a [Component] that knows to which entities it is plugged into.
  *
- * Note, that this is by far the slowest implementation of [Component].
- * The more entities this component is plugged into, the slower the process of removing the component from each entity will be.
- * If only the amount of entities this component is plugged into is required, consider using [PoolableComponent].
- *
  * Component should not implement both interfaces: [RichComponent] and [UniqueComponent].*/
 interface RichComponent : Component, CanBeObservedBySystem {
 
