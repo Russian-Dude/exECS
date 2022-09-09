@@ -8,6 +8,7 @@ import com.rdude.exECS.component.ObservableComponentChangeManager
 import com.rdude.exECS.config.WorldConfiguration
 import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.entity.EntityMapper
+import com.rdude.exECS.entity.SingletonEntitiesAutoRegistrar
 import com.rdude.exECS.entity.SingletonEntity
 import com.rdude.exECS.event.*
 import com.rdude.exECS.exception.EmptyEntityException
@@ -23,6 +24,7 @@ import com.rdude.exECS.serialization.WorldSnapshotGenerator
 import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.system.IterableEventSystem
 import com.rdude.exECS.system.System
+import com.rdude.exECS.system.SystemsAutoRegistrar
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.ComponentTypeToEntityPair
 import com.rdude.exECS.utils.collections.IntArrayStackSet
@@ -177,6 +179,24 @@ class World {
     }
 
 
+    /** Auto registers [SingletonEntities][SingletonEntity] from all packages.*/
+    fun autoRegisterSingletonEntities() = SingletonEntitiesAutoRegistrar.defaultRegistrar.register(this)
+
+
+    /** Auto registers [SingletonEntities][SingletonEntity] from all packages using configured registrar.*/
+    fun autoRegisterSingletonEntities(apply: SingletonEntitiesAutoRegistrar.() -> Unit) {
+        val registrar = SingletonEntitiesAutoRegistrar()
+        registrar.apply()
+        registrar.register(this)
+    }
+
+
+    /** Auto registers [SingletonEntities][SingletonEntity] from all packages using provided registrar.*/
+    fun autoRegisterSingletonEntities(registrar: SingletonEntitiesAutoRegistrar) {
+        registrar.register(this)
+    }
+
+
     /** @return [SingletonEntity] of type [T] or null if Singleton with this type is not registered in this World.*/
     fun <T : SingletonEntity> getSingletonEntity(cl: KClass<T>): T? =
         entityMapper.singletons[ExEcs.singletonEntityIDsResolver.idFor(cl)] as T?
@@ -201,6 +221,24 @@ class World {
         }
         // update generated fields based on the current world
         ExEcs.generatedFieldsInitializer.systemAdded(system, this)
+    }
+
+
+    /** Auto registers [Systems][System] from all packages.*/
+    fun autoRegisterSystems() = SystemsAutoRegistrar.defaultRegistrar.register(this)
+
+
+    /** Auto registers [Systems][System] from all packages using configured registrar.*/
+    fun autoRegisterSystems(apply: SystemsAutoRegistrar.() -> Unit) {
+        val registrar = SystemsAutoRegistrar()
+        registrar.apply()
+        registrar.register(this)
+    }
+
+
+    /** Auto registers [Systems][System] from all packages using provided registrar.*/
+    fun autoRegisterSystems(registrar: SystemsAutoRegistrar) {
+        registrar.register(this)
     }
 
 
