@@ -4,11 +4,16 @@ package com.rdude.exECS.utils.collections
 @JvmInline
 internal value class ComponentTypeToEntityPair(val data: Long) {
 
-    constructor(entityID: Int, componentTypeId: Int) : this((entityID.toLong() shl 32) + componentTypeId)
-
     inline fun entityId(): Int = (data shr 32).toInt()
 
     inline fun componentId(): Int = data.toInt()
+
+    internal companion object {
+
+        inline operator fun invoke(entityID: Int, componentTypeId: Int) =
+            ComponentTypeToEntityPair((entityID.toLong() shl 32) + componentTypeId)
+
+    }
 }
 
 

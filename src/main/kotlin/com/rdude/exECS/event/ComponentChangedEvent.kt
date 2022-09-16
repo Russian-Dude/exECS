@@ -17,14 +17,19 @@ class ComponentChangedEvent<T : ObservableComponent<*>> : InternalPoolableEvent(
         internal set
 
     /** The change that happened to the [component].*/
-    internal lateinit var _change: ComponentChange
+    @JvmField
+    internal var _change: ComponentChange = NO_CHANGE
 
     // notComponentRelatedInternalEventsAmount + (eventId * componentsAmount) + componentId
     override fun getEventTypeId(): Int = 3 + (2 * ExEcs.componentTypeIDsResolver.size) + component.getComponentTypeId()
 
 
     internal companion object {
+
         val pool = Pool { ComponentChangedEvent<ObservableComponent<*>>() }
+
+        private val NO_CHANGE = object : ComponentChange {}
+
     }
 
 }
@@ -34,5 +39,5 @@ class ComponentChangedEvent<T : ObservableComponent<*>> : InternalPoolableEvent(
 // looks nicer than
 // class MySystem : SimpleEventSystem<ComponentChangedEvent<ScoreComponent>, ScoreChangedEvent>>
 /** The change that happened to the component.*/
-val <CH : ComponentChange, CO : ObservableComponent<CH>, E : ComponentChangedEvent<CO>> E.change : CH get() = _change as CH
+val <CH : ComponentChange, CO : ObservableComponent<CH>, E : ComponentChangedEvent<CO>> E.change: CH get() = _change as CH
 

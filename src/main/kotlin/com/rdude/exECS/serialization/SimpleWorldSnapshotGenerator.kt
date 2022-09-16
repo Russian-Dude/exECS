@@ -1,5 +1,7 @@
 package com.rdude.exECS.serialization
 
+import com.rdude.exECS.component.ChildEntityComponent
+import com.rdude.exECS.component.ParentEntityComponent
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.componentTypeId
 import com.rdude.exECS.world.World
@@ -10,11 +12,15 @@ object SimpleWorldSnapshotGenerator : WorldSnapshotGenerator<SimpleWorldSnapshot
 
     override fun generate(world: World): SimpleWorldSnapshot {
 
+        val parentEntityComponentTypeId = ParentEntityComponent::class.componentTypeId
+        val childEntityComponentTypeID = ChildEntityComponent::class.componentTypeId
+
         val componentMappers = world.entityMapper.componentMappers
-            .mapIndexed { index, componentMapper ->
+            .filterNot { it.componentTypeId == parentEntityComponentTypeId || it.componentTypeId == childEntityComponentTypeID }
+            .map { componentMapper ->
                 ComponentMapperSnapshot.fromArray(
                     componentMapper.backingArray,
-                    ExEcs.componentTypeIDsResolver.typeById(index)
+                    ExEcs.componentTypeIDsResolver.typeById(componentMapper.componentTypeId)
                 )
             }
 
@@ -24,11 +30,14 @@ object SimpleWorldSnapshotGenerator : WorldSnapshotGenerator<SimpleWorldSnapshot
                 SingletonSnapshot(singletonEntity.entityID, singletonEntity)
             }
 
+        val parentChildRelations = EntitiesParentChildRelationsSnapshot.fromComponentMappers(world.entityMapper.parentEntityComponents)
+
         return SimpleWorldSnapshot(
             simpleEntityStartIndex = ExEcs.singletonEntityIDsResolver.size,
             simpleEntitiesAmount = world.entityMapper.size - world.entityMapper.singletons.count { it != null },
             componentMappers = componentMappers,
-            singletonEntities = singletonEntities
+            singletonEntities = singletonEntities,
+            entitiesParentChildRelationsSnapshot = parentChildRelations
         )
     }
 
@@ -60,10 +69,26 @@ object SimpleWorldSnapshotGenerator : WorldSnapshotGenerator<SimpleWorldSnapshot
                     val id =
                         if (index < resultSimpleEntityStartIndex) actualSingletonEntitiesIds[index]
                         else index + simpleEntityStartIndexOffset
-                    componentMapper.unsafeSet(id, component)
+                    componentMapper.addComponentUnsafe(id, component, false)
                 }
             }
             componentMapper.sendComponentAddedEvents = sendComponentAddedEvents
+        }
+
+        var parent = -1
+        var childrenLeft = 0
+        for (i in snapshot.entitiesParentChildRelationsSnapshot.data) {
+            if (childrenLeft == 0) {
+                parent = i
+                childrenLeft = -1
+                continue
+            }
+            else if (childrenLeft == -1) {
+                childrenLeft = i
+                continue
+            }
+            world.entityMapper.addChildEntity(parent, i)
+            childrenLeft--
         }
 
         val sendEntityAddedEvents = world.entityMapper.sendEntityAddedEvents

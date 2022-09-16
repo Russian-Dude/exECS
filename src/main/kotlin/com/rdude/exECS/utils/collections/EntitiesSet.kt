@@ -1,16 +1,14 @@
 package com.rdude.exECS.utils.collections
 
-import com.rdude.exECS.component.RichComponent
 import com.rdude.exECS.entity.Entity
 
-/** Stores [Entities][Entity] to which [RichComponent] is plugged into.
- * Entities are stored in no particular order.*/
+/** Set of [Entities][Entity]. Entities are stored in no particular order.*/
 // does not implement collection or iterable to avoid boxing entities
 class EntitiesSet {
 
     @JvmField
     @PublishedApi
-    internal var backingArray = IntArray(16)
+    internal var backingArray = IntArray(2)
 
     @JvmField
     @PublishedApi
@@ -103,7 +101,7 @@ class EntitiesSet {
 
     internal fun add(element: Int): Boolean {
         if (presenceBitSet[element]) return false
-        if (backingArray.size <= lastIndex) {
+        if (backingArray.size <= lastIndex + 1) {
             grow()
         }
         size++
@@ -145,6 +143,28 @@ class EntitiesSet {
     internal fun grow() {
         val newSize = size * 2
         backingArray = backingArray.copyOf(newSize)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as EntitiesSet
+        if (size != other.size) return false
+        if (presenceBitSet != other.presenceBitSet) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = presenceBitSet.hashCode()
+        result = 31 * result + size
+        return result
+    }
+
+
+    companion object {
+
+        val EMPTY_SET = EntitiesSet()
+
     }
 
 

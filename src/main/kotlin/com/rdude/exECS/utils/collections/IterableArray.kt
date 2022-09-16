@@ -28,6 +28,12 @@ internal class IterableArray<T> private constructor(array: Array<T?>, initialSiz
         }
     }
 
+    inline fun addAll(iterableArray: IterableArray<T>) {
+        iterableArray.forEach {
+            add(it)
+        }
+    }
+
     inline fun remove(element: T) {
         for (i in 0 until size) {
             val current = backingArray[i]
@@ -74,6 +80,12 @@ internal class IterableArray<T> private constructor(array: Array<T?>, initialSiz
         for (i in 0 until size) {
             action.invoke(backingArray[i]!!)
         }
+    }
+
+    inline fun <reified R : Any> map(transformer: (T) -> R): IterableArray<R> {
+        val result = IterableArray<R>(Array(backingArray.size) {null}, 0)
+        forEach { result.add(transformer.invoke(it)) }
+        return result
     }
 
     inline fun removeIf(predicate: (T) -> Boolean) {

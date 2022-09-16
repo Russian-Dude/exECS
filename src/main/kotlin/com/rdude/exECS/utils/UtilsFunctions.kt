@@ -7,6 +7,7 @@ import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.utils.collections.ComponentTypeToEntityPair
 import com.rdude.exECS.utils.collections.EventTypeToComponentTypePair
 import com.rdude.exECS.system.System
+import com.rdude.exECS.utils.collections.IntTreeNode
 import kotlin.math.max
 import kotlin.reflect.KClass
 
@@ -86,3 +87,13 @@ internal inline fun Long.asComponentToEntity() = ComponentTypeToEntityPair(this)
 
 /** Wraps long value to [EventTypeToComponentTypePair] value class.*/
 internal inline fun Long.asEventToComponent() = EventTypeToComponentTypePair(this)
+
+internal inline fun Long.getFirstInt(): Int = (this shr 32).toInt()
+
+internal inline fun Long.withChangedFirstInt(value: Int): Long = (value.toLong() shl 32) + getSecondInt()
+
+internal inline fun Long.getSecondInt(): Int = this.toInt()
+
+internal inline fun Long.withChangedSecondInt(value: Int): Long = this - this.toInt() + value
+
+internal inline fun longFromInts(a: Int, b: Int): Long = (a.toLong() shl 32) + b

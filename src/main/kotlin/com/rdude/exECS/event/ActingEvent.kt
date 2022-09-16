@@ -13,8 +13,8 @@ object ActingEvent : InternalEvent() {
     /** Every [World] can use its own custom priority for [ActingEvent], specified in [World.configuration],
      * which will be used when ActingEvent is queued while executing the [World.act] method.
      * This method is overridden for situations when [ActingEvent] is queued outside the [World.act] method. In this
-     * case, priority from the [ExEcsGlobalConfiguration.actingEventPriority] will be used.*/
-    override fun defaultPriority(): EventPriority = ExEcsGlobalConfiguration.actingEventPriority
+     * case, priority from the [ExEcsGlobalConfiguration.WorldDefaultConfiguration.actingEventPriority] will be used.*/
+    override fun defaultPriority(): EventPriority = ExEcsGlobalConfiguration.worldDefaultConfiguration.actingEventPriority
 
     // hardcoded for performance
     override fun getEventTypeId(): Int = 0

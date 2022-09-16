@@ -1,19 +1,21 @@
 package com.rdude.exECS.entity
 
+import com.rdude.exECS.aspect.SubscriptionsManager
+import com.rdude.exECS.component.ChildEntityComponent
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentMapper
+import com.rdude.exECS.component.ParentEntityComponent
 import com.rdude.exECS.event.EntityAddedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
+import com.rdude.exECS.exception.NoEntityException
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntArrayStackSet
 import com.rdude.exECS.utils.collections.IntIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.UnsafeBitSet
-import com.rdude.exECS.world.World
-import com.rdude.exECS.aspect.SubscriptionsManager
-import com.rdude.exECS.exception.AlreadyRegisteredException
-import com.rdude.exECS.utils.fastForEach
+import com.rdude.exECS.utils.componentTypeId
 import com.rdude.exECS.utils.fastForEachIndexed
+import com.rdude.exECS.world.World
 
 internal class EntityMapper(private var world: World, freshAddedEntitiesArray: IntIterableArray, freshRemovedEntitiesArray: IntArrayStackSet) {
 
@@ -27,6 +29,18 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
     /** Stores component mappers for every component type. Array index - component type id.*/
     @JvmField internal val componentMappers: Array<ComponentMapper<*>> =
         Array(ExEcs.componentTypeIDsResolver.size) { ComponentMapper(it, world, componentMappersSize) }
+
+    /** Faster access to [ParentEntityComponent] mapper.*/
+    @JvmField
+    @Suppress("UNCHECKED_CAST")
+    internal val parentEntityComponents: ComponentMapper<ParentEntityComponent> =
+        componentMappers[ParentEntityComponent::class.componentTypeId] as ComponentMapper<ParentEntityComponent>
+
+    /** Faster access to [ChildEntityComponent] mapper.*/
+    @JvmField
+    @Suppress("UNCHECKED_CAST")
+    internal val childEntityComponents: ComponentMapper<ChildEntityComponent> =
+        componentMappers[ChildEntityComponent::class.componentTypeId] as ComponentMapper<ChildEntityComponent>
 
     /** Singleton instances.*/
     @JvmField internal val singletons: Array<SingletonEntity?> = Array(reservedForSingletons) { null }
@@ -93,7 +107,7 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         val id = create()
         // add components to component mappers
         components.forEach {
-            componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
+            componentMappers[it.getComponentTypeId()].addComponentUnsafe(id, it, world.configuration.queueComponentAddedWhenEntityAdded)
         }
         return Entity(id)
     }
@@ -103,7 +117,7 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         val id = create()
         // add components to component mappers
         components.forEach {
-            componentMappers[it.getComponentTypeId()].unsafeSet(id, it)
+            componentMappers[it.getComponentTypeId()].addComponentUnsafe(id, it, world.configuration.queueComponentAddedWhenEntityAdded)
         }
         return Entity(id)
     }
@@ -138,7 +152,12 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         if (singletons[entityID] != null) return
         singletons[entityID] = singletonEntity
         singletonEntity.componentsCache.fastForEachIndexed { index, component ->
-            componentMappers[index].unsafeSet(entityID, component)
+            if (component != null) {
+                componentMappers[index].addComponentUnsafe(entityID, component, world.configuration.queueComponentAddedWhenEntityAdded)
+            }
+            else {
+                componentMappers[index].removeComponent(entityID, false)
+            }
         }
         size++
         // add to fresh entities
@@ -160,15 +179,19 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
      *  constancy of entity IDs throughout the execution of the [World.act] method, the actual removing of all requested
      *  entities occurs at the beginning of the [World.act] method using the [removeRequested] method.*/
     fun requestRemove(id: Int) {
+        if (id < 0) throw NoEntityException("Can not remove Entity.NO_ENTITY")
         val requestAdded = removeRequests.add(id)
         if (!requestAdded) return // removing of this entity may already be requested
         freshRemovedEntities.add(id)
+        // events
         if (sendEntityRemovedEvents) {
             val event = EntityRemovedEvent.pool.obtain()
             event.entity = Entity(id)
             event.entityAsSingleton = if (id >= reservedForSingletons) null else singletons[id]
             world.queueEvent(event)
         }
+        // parents
+        parentEntityComponents[id]?.children?.forEach { requestRemove(it.id) }
         world.internalChangeOccurred = true
     }
 
@@ -181,10 +204,22 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
 
     private fun remove(id: Int) {
         size--
+        parentEntityComponents[id]?.children?.forEach { child ->
+            childEntityComponents.removeComponent(child.id, false)
+        }
+        val childComponent = childEntityComponents[id]
+        if (childComponent != null) {
+            val parent = parentEntityComponents[childComponent.parentEntityId]
+            if (parent != null) {
+                parent.children.remove(id)
+                if (parent.children.isEmpty()) parentEntityComponents.removeComponent(childComponent.parentEntityId, false)
+            }
+        }
         val isNotSingleton = id >= reservedForSingletons
         if (isNotSingleton) {
             emptyIds.add(id)
-            componentMappers.forEach { it.removeComponentSilently(id) }
+            val eventAllowed = world.configuration.queueComponentRemovedWhenEntityRemoved
+            componentMappers.forEach { it.removeComponent(id, eventAllowed) }
         }
         else {
             singletons[id]?.world = null
@@ -200,6 +235,31 @@ internal class EntityMapper(private var world: World, freshAddedEntitiesArray: I
         freshAddedEntities.clear()
         freshRemovedEntities.clear()
         world.internalChangeOccurred = true
+    }
+
+    fun addChildEntity(parent: Int, child: Int) {
+        if (parent == child) throw IllegalArgumentException("Entity cannot be a child of itself")
+        if (parent < 0) throw NoEntityException("Can not add a child Entity. Parent Entity is Entity.NO_ENTITY")
+        if (child < 0) throw NoEntityException("Can not add a child Entity. Child Entity is Entity.NO_ENTITY")
+        val parentComponent = parentEntityComponents[parent]
+            ?: ParentEntityComponent.pool.obtain().apply { parentEntityComponents.addComponent(parent, this, false) }
+        val childComponent = childEntityComponents[child]
+            ?: ChildEntityComponent.pool.obtain().apply { childEntityComponents.addComponent(child, this, false) }
+        parentComponent.children.add(child)
+        if (childComponent.parent != Entity.NO_ENTITY) {
+            parentEntityComponents[childComponent.parentEntityId]!!.children.remove(child)
+        }
+        childComponent.parentEntityId = parent
+    }
+
+    fun removeChildEntity(parent: Int, child: Int) {
+        if (parent < 0) throw NoEntityException("Can not remove child Entity. Parent Entity is Entity.NO_ENTITY")
+        if (child < 0) throw NoEntityException("Can not remove child Entity. Child Entity is Entity.NO_ENTITY")
+        childEntityComponents.removeComponent(child, false)
+        val parentComponent = parentEntityComponents[parent]!!
+        val children = parentComponent.children
+        children.remove(child)
+        if (children.size == 0) parentEntityComponents.removeComponent(parent, false)
     }
 
     fun growSizeTo(newSize: Int) {

@@ -4,7 +4,6 @@ import com.rdude.exECS.component.Component
 import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
-import com.rdude.exECS.exception.DefaultPoolNotExistException
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
 import com.rdude.exECS.utils.ExEcs
@@ -28,7 +27,7 @@ object EntityUnoptimizedMethods {
 
     /** Removes [Component] of the specified type from [entity]. Fires [ComponentRemovedEvent].*/
     fun removeComponent(entity: Entity, componentClass: KClass<out Component>, world: World) {
-        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entity.id] = null
+        world.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)].removeComponent(entity.id)
     }
 
 
@@ -49,14 +48,13 @@ object EntityUnoptimizedMethods {
 
     /** Adds [component] to the [entity]. Fires [ComponentAddedEvent].*/
     fun addComponent(entity: Entity, component: Component, world: World) =
-        world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entity.id, component)
+        world.entityMapper.componentMappers[component.getComponentTypeId()].addComponentUnsafe(entity.id, component)
 
 
     /** Obtains [Component] of type [T] from the default Pool and adds it to the [entity]. Fires [ComponentAddedEvent].*/
-    fun <T> addComponent(entity: Entity, type: KClass<T>, world: World) where T : Component, T : Poolable {
-        val component = ExEcs.defaultPools[type].obtain() as T
-        world.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entity.id, component)
-    }
+    @Suppress("UNCHECKED_CAST")
+    fun <T> addComponent(entity: Entity, type: KClass<T>, world: World) where T : Component, T : Poolable =
+        addComponent(entity, ExEcs.defaultPools[type].obtain() as T, world)
 
 
     /** Obtains [Component] of type [T] from the default Pool and adds it to the [entity]. Fires [ComponentAddedEvent].*/

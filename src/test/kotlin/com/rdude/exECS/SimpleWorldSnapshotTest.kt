@@ -1,18 +1,16 @@
 package com.rdude.exECS
 
 import com.rdude.exECS.component.Component
-import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.event.Event
 import com.rdude.exECS.serialization.SimpleWorldSnapshot
-import com.rdude.exECS.system.EventSystem
-import com.rdude.exECS.system.IterableActingSystem
 import com.rdude.exECS.world.World
+import com.rdude.exECS.world.WorldAccessor
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SimpleWorldSnapshotTest {
+class SimpleWorldSnapshotTest : WorldAccessor() {
 
     class TestComponent1 : Component
 
@@ -20,29 +18,22 @@ class SimpleWorldSnapshotTest {
 
     class TestEvent1 : Event
 
-    class TestSystem1 : IterableActingSystem(anyOf = TestComponent1::class and TestComponent2::class) {
-        override fun act(entity: Entity) {}
-    }
-
-    class TestSystem2 : EventSystem<TestEvent1>() {
-        override fun eventFired(event: TestEvent1) {}
-    }
-
-    val world = World()
+    override val world = World()
     lateinit var world2: World
     lateinit var snapshot1: SimpleWorldSnapshot
     lateinit var snapshot2: SimpleWorldSnapshot
 
     @BeforeAll
     fun init() {
-        world.registerSystem(TestSystem1())
-        world.registerSystem(TestSystem2())
-        world.createEntity(TestComponent1(), TestComponent2())
-        world.createEntity(TestComponent1(), TestComponent2())
-        world.createEntity(TestComponent2())
-        world.createEntity(TestComponent1())
+        val e1 = createEntity(TestComponent1(), TestComponent2())
+        val e2 = createEntity(TestComponent1(), TestComponent2())
+        val e3 = createEntity(TestComponent2())
+        val e4 = createEntity(TestComponent1())
+        e1.addChild(e2)
+        e2.addChild(e3)
+        e2.addChild(e4)
         world.act()
-        world.queueEvent(TestEvent1())
+        queueEvent(TestEvent1())
         snapshot1 = world.snapshot()
         world2 = World(snapshot1)
         snapshot2 = world2.snapshot()
@@ -77,6 +68,11 @@ class SimpleWorldSnapshotTest {
     @Test
     fun amountEquals() {
         assert(snapshot1.simpleEntitiesAmount == snapshot2.simpleEntitiesAmount)
+    }
+
+    @Test
+    fun parentChildRelations() {
+        assert(snapshot1.entitiesParentChildRelationsSnapshot.data.contentEquals(snapshot2.entitiesParentChildRelationsSnapshot.data))
     }
 
 }

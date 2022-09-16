@@ -23,7 +23,7 @@ internal class EventBus(private val world: World) {
 
     fun removeSystem(system: EventSystem<*>) {
         system.eventsTypesSubscription.eventIds.forEach {
-            eventsToSystems[it].remove(system)
+            eventsToSystems[it].removeContainingOrder(system)
         }
     }
 

@@ -9,6 +9,8 @@ data class SimpleWorldSnapshot(
 
     val componentMappers: List<ComponentMapperSnapshot<*>>,
 
+    val entitiesParentChildRelationsSnapshot: EntitiesParentChildRelationsSnapshot,
+
     val singletonEntities: List<SingletonSnapshot>,
 
 ) : WorldSnapshot()

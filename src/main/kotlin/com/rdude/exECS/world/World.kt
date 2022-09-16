@@ -6,14 +6,11 @@ import com.rdude.exECS.component.ComponentChange
 import com.rdude.exECS.component.ObservableComponent
 import com.rdude.exECS.component.ObservableComponentChangeManager
 import com.rdude.exECS.config.WorldConfiguration
-import com.rdude.exECS.entity.Entity
-import com.rdude.exECS.entity.EntityMapper
-import com.rdude.exECS.entity.SingletonEntitiesAutoRegistrar
-import com.rdude.exECS.entity.SingletonEntity
+import com.rdude.exECS.entity.*
 import com.rdude.exECS.event.*
-import com.rdude.exECS.exception.EmptyEntityException
 import com.rdude.exECS.exception.AlreadyRegisteredException
 import com.rdude.exECS.exception.DefaultPoolNotExistException
+import com.rdude.exECS.exception.EmptyEntityException
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.PoolablesManager
 import com.rdude.exECS.pool.fromPool
@@ -34,6 +31,8 @@ import kotlin.reflect.KClass
 
 /** Core element of the exECS. Stores and manages [Events][Event], [Entities][Entity], [Components][Component] and [Systems][System].*/
 class World {
+
+    @JvmField val configuration = WorldConfiguration(this)
 
     @JvmField internal val subscriptionsManager: SubscriptionsManager
 
@@ -64,8 +63,6 @@ class World {
 
     var isCurrentlyActing = false
         private set
-
-    @JvmField val configuration = WorldConfiguration()
 
     @JvmField val utils = WorldUtils(this)
 
@@ -113,7 +110,7 @@ class World {
         queueEvent(fromPool<T>().apply { apply.invoke(this) }, priority)
 
 
-    /** Creates an Entity with given components. At least one component must be passed to the arguments.
+    /** Creates an [Entity] with given components. At least one component must be passed to the arguments.
      * Queues [EntityAddedEvent].
      * @return created [Entity].
      * @throws [EmptyEntityException] if no components have been passed.*/
@@ -122,13 +119,40 @@ class World {
         return entityMapper.create(components)
     }
 
-    /** Creates an Entity with given components. At least one component must be passed to the arguments.
+
+    /** Creates an [Entity] with given components. At least one component must be passed to the arguments.
      * Queues [EntityAddedEvent].
      * @return created [Entity].
      * @throws [EmptyEntityException] if no components have been passed.*/
     fun createEntity(vararg components: Component): Entity {
         if (components.isEmpty()) throw EmptyEntityException()
         return entityMapper.create(components)
+    }
+
+
+    /** Creates an [Entity] from the given [EntityBlueprint]. Queues [EntityAddedEvent].
+     * @return created [Entity]*/
+    @Suppress("UNCHECKED_CAST")
+    fun <T : EntityBlueprintConfiguration> createEntity(entityBlueprint: EntityBlueprint<T>): Entity {
+        val builder = EntityBuilder.pool.obtain() as EntityBuilder<T>
+        val id = entityBlueprint.fullBuildingFun.invoke(this, builder, entityBlueprint.defaultConfiguration.invoke())
+        builder.returnToPool()
+        return Entity(id)
+    }
+
+
+    /** Creates an [Entity] from the given [EntityBlueprint] with applied [configuration]. Queues [EntityAddedEvent].
+     * @return created [Entity]*/
+    @Suppress("UNCHECKED_CAST")
+    inline fun <T : EntityBlueprintConfiguration> createEntity(
+        entityBlueprint: EntityBlueprint<T>,
+        configuration: T.() -> Unit
+    ): Entity {
+        val builder = EntityBuilder.pool.obtain() as EntityBuilder<T>
+        val config = entityBlueprint.defaultConfiguration.invoke().apply { configuration() }
+        val id = entityBlueprint.fullBuildingFun.invoke(this, builder, config)
+        builder.returnToPool()
+        return Entity(id)
     }
 
 

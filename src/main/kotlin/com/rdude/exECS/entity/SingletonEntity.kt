@@ -70,7 +70,7 @@ abstract class SingletonEntity : WorldAccessor() {
      * Queues [ComponentRemovedEvent] in the [World] in which this SingletonEntity is registered, if Component has been removed.*/
     fun <T : Component> removeComponent(componentClass: KClass<T>) {
         if (world != null) {
-            world!!.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)][entityID] = null
+            world!!.entityMapper.componentMappers[ExEcs.componentTypeIDsResolver.idFor(componentClass)].removeComponent(entityID)
         }
         else componentsCache[componentClass.componentTypeId] = null
     }
@@ -86,7 +86,7 @@ abstract class SingletonEntity : WorldAccessor() {
     @PublishedApi
     internal fun removeComponent(componentTypeId: Int) {
         if (world != null) {
-            world!!.entityMapper.componentMappers[componentTypeId][entityID] = null
+            world!!.entityMapper.componentMappers[componentTypeId].removeComponent(entityID)
         }
         else componentsCache[componentTypeId] = null
     }
@@ -125,7 +125,7 @@ abstract class SingletonEntity : WorldAccessor() {
      * Queues [ComponentAddedEvent] in the [World] in which this SingletonEntity is registered, if Component has been added.*/
     fun addComponent(component: Component) {
         if (world != null) {
-            world!!.entityMapper.componentMappers[component.getComponentTypeId()].unsafeSet(entityID, component)
+            world!!.entityMapper.componentMappers[component.getComponentTypeId()].addComponentUnsafe(entityID, component)
         }
         else componentsCache[component.getComponentTypeId()] = component
     }
