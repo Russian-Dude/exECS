@@ -7,7 +7,6 @@ import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.utils.collections.ComponentTypeToEntityPair
 import com.rdude.exECS.utils.collections.EventTypeToComponentTypePair
 import com.rdude.exECS.system.System
-import com.rdude.exECS.utils.collections.IntTreeNode
 import kotlin.math.max
 import kotlin.reflect.KClass
 
