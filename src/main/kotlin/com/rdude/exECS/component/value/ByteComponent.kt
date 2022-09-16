@@ -190,4 +190,16 @@ abstract class ByteComponent(open var value: Byte = 0) : Component, Comparable<B
 
 
     override fun toString(): String = "${this::class.simpleName}(value=$value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as ByteComponent
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return value.toInt()
+    }
 }

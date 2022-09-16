@@ -303,4 +303,16 @@ abstract class DoubleComponent(open var value: Double = 0.0) : Component, Compar
 
 
     override fun toString(): String = "${this::class.simpleName}(value=$value)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as DoubleComponent
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
+    }
 }
