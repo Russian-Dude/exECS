@@ -1,4 +1,4 @@
-# exECS
+# Overview
 Event-based Entity-Component-System library for Kotlin JVM. It aims to be feature-rich, provide clean and simple-to-use API and be as performant as possible.
 
 ExECS consists of two parts: the main library (this repo) and the [compiler plugin](https://github.com/Russian-Dude/execs-plugin) which helps to increase performance.
