@@ -14,7 +14,7 @@ Because Kotlin API for creating compiler plugins is not yet stable only 1.6.21 a
 ExECS uses [ronmamo reflections library](https://github.com/ronmamo/reflections)
 
 # Installation
-ExECS is available by Jitpack.
+ExECS is available via Jitpack.
 
 Gradle:
 ```kotlin
