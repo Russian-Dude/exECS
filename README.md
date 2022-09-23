@@ -1,5 +1,5 @@
 # Overview
-Event-based Entity-Component-System library for Kotlin JVM. It aims to be feature-rich, provide clean and simple-to-use API and be as performant as possible.
+ExECS is Event-based Entity-Component-System library for Kotlin JVM. It aims to be feature-rich, provide clean and simple-to-use API and be as performant as possible.
 
 ExECS consists of two parts: the main library (this repo) and the [compiler plugin](https://github.com/Russian-Dude/execs-plugin) which helps to increase performance.
 
@@ -19,11 +19,11 @@ ExECS is available via Jitpack.
 Gradle:
 ```kotlin
 repositories {
-    maven(uri("https://jitpack.io"))
+    maven("https://jitpack.io")
 }
 buildscript {
     repositories {
-        this.maven("https://jitpack.io")
+        maven("https://jitpack.io")
     }
     dependencies {
         classpath("com.github.Russian-Dude:execs-plugin:1.5.0-1")
