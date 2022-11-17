@@ -21,11 +21,12 @@ import com.rdude.exECS.serialization.WorldSnapshotGenerator
 import com.rdude.exECS.system.EventSystem
 import com.rdude.exECS.system.IterableEventSystem
 import com.rdude.exECS.system.System
-import com.rdude.exECS.system.SystemsAutoRegistrar
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.ComponentTypeToEntityPair
 import com.rdude.exECS.utils.collections.IntArrayStackSet
 import com.rdude.exECS.utils.collections.IntIterableArray
+import com.rdude.exECS.utils.reflection.AutoRegistrar
+import com.rdude.exECS.utils.reflection.AutoRegistrarProperties
 import com.rdude.exECS.utils.systemTypeId
 import kotlin.reflect.KClass
 
@@ -204,19 +205,21 @@ class World {
 
 
     /** Auto registers [SingletonEntities][SingletonEntity] from all packages.*/
-    fun autoRegisterSingletonEntities() = SingletonEntitiesAutoRegistrar.defaultRegistrar.register(this)
+    fun autoRegisterSingletonEntities() =
+        AutoRegistrar<SingletonEntity, World> { s, w -> w.addSingletonEntity(s) }
+            .register(this)
 
 
     /** Auto registers [SingletonEntities][SingletonEntity] from all packages using configured registrar.*/
-    fun autoRegisterSingletonEntities(apply: SingletonEntitiesAutoRegistrar.() -> Unit) {
-        val registrar = SingletonEntitiesAutoRegistrar()
+    fun autoRegisterSingletonEntities(apply: AutoRegistrarProperties<SingletonEntity, World>.() -> Unit) {
+        val registrar = AutoRegistrar<SingletonEntity, World> { s, w -> w.addSingletonEntity(s) }
         registrar.apply()
         registrar.register(this)
     }
 
 
     /** Auto registers [SingletonEntities][SingletonEntity] from all packages using provided registrar.*/
-    fun autoRegisterSingletonEntities(registrar: SingletonEntitiesAutoRegistrar) {
+    fun autoRegisterSingletonEntities(registrar: AutoRegistrar<SingletonEntity, World>) {
         registrar.register(this)
     }
 
@@ -249,19 +252,21 @@ class World {
 
 
     /** Auto registers [Systems][System] from all packages.*/
-    fun autoRegisterSystems() = SystemsAutoRegistrar.defaultRegistrar.register(this)
+    fun autoRegisterSystems() = //SystemsAutoRegistrar.defaultRegistrar.register(this)
+        AutoRegistrar<System, World> { s, w -> w.registerSystem(s) }
+            .register(this)
 
 
     /** Auto registers [Systems][System] from all packages using configured registrar.*/
-    fun autoRegisterSystems(apply: SystemsAutoRegistrar.() -> Unit) {
-        val registrar = SystemsAutoRegistrar()
+    fun autoRegisterSystems(apply: AutoRegistrarProperties<System, World>.() -> Unit) {
+        val registrar = AutoRegistrar<System, World> { s, w -> w.registerSystem(s) }
         registrar.apply()
         registrar.register(this)
     }
 
 
     /** Auto registers [Systems][System] from all packages using provided registrar.*/
-    fun autoRegisterSystems(registrar: SystemsAutoRegistrar) {
+    fun autoRegisterSystems(registrar: AutoRegistrar<System, World>) {
         registrar.register(this)
     }
 
