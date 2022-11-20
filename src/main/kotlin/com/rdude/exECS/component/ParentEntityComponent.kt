@@ -5,7 +5,7 @@ import com.rdude.exECS.utils.collections.EntitiesSet
 import com.rdude.exECS.entity.Entity
 
 /** [Entity] that has children will have this component.*/
-class ParentEntityComponent internal constructor() : UniqueComponent, PoolableComponent {
+internal class ParentEntityComponent internal constructor() : UniqueComponent, PoolableComponent {
 
     @JvmField
     val children = EntitiesSet()

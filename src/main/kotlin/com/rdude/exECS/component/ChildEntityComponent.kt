@@ -4,7 +4,7 @@ import com.rdude.exECS.entity.Entity
 import com.rdude.exECS.pool.Pool
 
 /** [Entity] that has a parent will have this component.*/
-class ChildEntityComponent internal constructor() : UniqueComponent, PoolableComponent {
+internal class ChildEntityComponent internal constructor() : UniqueComponent, PoolableComponent {
 
     @JvmField
     @PublishedApi
