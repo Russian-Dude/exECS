@@ -5,11 +5,13 @@ import com.rdude.exECS.event.ComponentAddedEvent
 import com.rdude.exECS.event.ComponentRemovedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.exception.DefaultPoolNotExistException
+import com.rdude.exECS.exception.NoEntityException
 import com.rdude.exECS.exception.WorldNotSetException
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
 import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.ExEcs
+import com.rdude.exECS.utils.collections.EntitiesSet
 import com.rdude.exECS.utils.componentTypeId
 import com.rdude.exECS.world.World
 import com.rdude.exECS.world.WorldAccessor
@@ -116,7 +118,6 @@ abstract class SingletonEntity : WorldAccessor() {
     /** @return True if this SingletonEntity has a [Component] with [componentTypeId].
      * @throws [ArrayIndexOutOfBoundsException]
      * @throws [ClassCastException]*/
-    @Suppress("UNCHECKED_CAST")
     @PublishedApi
     internal fun hasComponent(componentTypeId: Int): Boolean = componentsCache[componentTypeId] != null
 
@@ -157,6 +158,64 @@ abstract class SingletonEntity : WorldAccessor() {
     /** Removes this SingletonEntity from the [World]. Queues [EntityRemovedEvent].
      * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
     fun remove() = (world ?: throw WorldNotSetException(this)).requestRemoveEntity(entityID)
+
+
+    /** Removes this SingletonEntity from the parent Entity if this SingletonEntity is a child.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun removeFromParent() {
+        val entityMapper = world?.entityMapper ?: throw WorldNotSetException(this)
+        val childComponent = entityMapper.childEntityComponents[entityID] ?: return
+        entityMapper.removeChildEntity(childComponent.parentEntityId, entityID)
+    }
+
+
+    /** Removes child [entity] from this SingletonEntity if [entity] is a child of this SingletonEntity.
+     * @throws [NoEntityException] if [entity] is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun removeChild(entity: Entity) {
+        val entityMapper = world?.entityMapper ?: throw WorldNotSetException(this)
+        val childComponent = entityMapper.childEntityComponents[entity.id] ?: return
+        if (childComponent.parent.id != entityID) return
+        entityMapper.removeChildEntity(entityID, entity.id)
+    }
+
+
+    /** Removes child [entity] from this SingletonEntity if [entity] is a child of this SingletonEntity.
+     * @throws [NoEntityException] if [entity] is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun removeChild(entity: SingletonEntity) = removeChild(entity.asEntity())
+
+
+    /** Adds [entity] as a child to this SingletonEntity. If [entity] is already a child of another Entity, switches parent.
+     * @throws [NoEntityException] if [entity] is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun addChild(entity: Entity) {
+        val entityMapper = world?.entityMapper ?: throw WorldNotSetException(this)
+        entityMapper.addChildEntity(entityID, entity.id)
+    }
+
+
+    /** Adds [entity] as a child to this SingletonEntity. If [entity] is already a child of another Entity, switches parent.
+     * @throws [NoEntityException] if [entity] is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    fun addChild(entity: SingletonEntity) = addChild(entity.asEntity())
+
+
+    /** Child Entities of this SingletonEntity.
+     * @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    val children: EntitiesSet
+        get() {
+        val entityMapper = world?.entityMapper ?: throw WorldNotSetException(this)
+        return entityMapper.parentEntityComponents[entityID]?.children ?: EntitiesSet.EMPTY_SET
+    }
+
+
+    /** Parent [Entity] of this SingletonEntity or [Entity.NO_ENTITY] if it does not have a parent.
+     * @throws @throws [WorldNotSetException] if this SingletonEntity is not registered in the [World]*/
+    val parent: Entity get() {
+        val entityMapper = world?.entityMapper ?: throw WorldNotSetException(this)
+        return entityMapper.childEntityComponents[entityID]?.parent ?: Entity.NO_ENTITY
+    }
 
 
     /** Generates a List of [Components][Component] plugged into this SingletonEntity.*/

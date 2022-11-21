@@ -38,14 +38,12 @@ abstract class WorldAccessor {
     /** Creates an [Entity] from the given [EntityBlueprint]. Queues [EntityAddedEvent].
      * @return created [Entity]
      * @throws [WorldNotSetException] if [world] property is null*/
-    @Suppress("UNCHECKED_CAST")
     fun createEntity(entityBlueprint: EntityBlueprint<*>): Entity =
         world?.createEntity(entityBlueprint) ?: throw WorldNotSetException(this)
 
 
     /** Creates an [Entity] from the given [EntityBlueprint] with applied [configuration]. Queues [EntityAddedEvent].
      * @return created [Entity]*/
-    @Suppress("UNCHECKED_CAST")
     inline fun <T : EntityBlueprintConfiguration> createEntity(
         entityBlueprint: EntityBlueprint<T>,
         configuration: T.() -> Unit
@@ -286,6 +284,12 @@ abstract class WorldAccessor {
     }
 
 
+    /** Removes child [entity] from this [Entity] if [entity] is a child of this Entity.
+     * @throws [NoEntityException] if this Entity is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
+    protected fun Entity.removeChild(entity: SingletonEntity) = removeChild(entity.asEntity())
+
+
     /** Adds [entity] as a child to this [Entity]. If [entity] is already a child of another Entity, switches parent.
      * @throws [NoEntityException] if this Entity or [entity] argument is [Entity.NO_ENTITY]
      * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
@@ -293,6 +297,12 @@ abstract class WorldAccessor {
         val entityMapper = world?.entityMapper ?: throw WorldNotSetException(this@WorldAccessor)
         entityMapper.addChildEntity(this.id, entity.id)
     }
+
+
+    /** Adds [entity] as a child to this [Entity]. If [entity] is already a child of another Entity, switches parent.
+     * @throws [NoEntityException] if this Entity is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
+    protected fun Entity.addChild(entity: SingletonEntity) = addChild(entity.asEntity())
 
 
     /** Child Entities of this [Entity].
