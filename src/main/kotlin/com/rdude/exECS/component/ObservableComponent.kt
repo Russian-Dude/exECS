@@ -2,20 +2,34 @@ package com.rdude.exECS.component
 
 import com.rdude.exECS.event.ComponentChangedEvent
 import com.rdude.exECS.world.World
+import com.rdude.exECS.system.IterableEventSystem
+import com.rdude.exECS.component.observable.*
 import java.util.*
 
-/** Observable components are components that can notify subscribers when they changed.
+/** Component that notifies about changes to its data.
  *
  * [ComponentChangedEvent] will be fired after the change occurred.
  *
- * Also, if component implements either [UniqueComponent] or [RichComponent], IterableSystems can subscribe not just to
- * component type but to component condition:
+ * If Observable Component also implements either [UniqueComponent] or [RichComponent],
+ * [IterableSystems][IterableEventSystem] can subscribe to component conditions:
  * ```
  * class MySystem : IterableActingSystem(only = PositionComponent::class { x > 0 && y > 0 })
  * ```
  *
- * [componentChanged] should be called to notify the change. If component only needs to store one property,
- * it can be created in one line using classes from package [com.rdude.exECS.component.observable].*/
+ * If Observable Component only needs to store one property, it is recommended to use one of the following classes instead:
+ *  * [ObservableValueComponent]
+ *  * [ObservableByteComponent]
+ *  * [ObservableShortComponent]
+ *  * [ObservableIntComponent]
+ *  * [ObservableLongComponent]
+ *  * [ObservableFloatComponent]
+ *  * [ObservableDoubleComponent]
+ *
+ * Otherwise, [componentChanged] should be called to notify about the change.
+ *
+ * @see ImmutableComponent
+ * @see RichComponent
+ * @see UniqueComponent*/
 interface ObservableComponent<T : ComponentChange> : Component {
 
     /** Current world of this component.

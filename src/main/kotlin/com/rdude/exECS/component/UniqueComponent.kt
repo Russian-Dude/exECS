@@ -4,10 +4,14 @@ import com.rdude.exECS.entity.Entity
 import java.util.*
 
 
-/** Unique component is a [Component] that knows to which entity it is plugged into.
- * Unlike any other [Component], it can only be plugged into one entity.
+/** Component that knows to which entity it is plugged into.
+ * Unlike any other Component, it can only be plugged into one [Entity].
  *
- * Component should not implement both interfaces: [RichComponent] and [UniqueComponent].*/
+ * Component should not implement both [RichComponent] and [UniqueComponent] interfaces.
+ *
+ * @see ImmutableComponent
+ * @see RichComponent
+ * @see ObservableComponent*/
 interface UniqueComponent : Component, CanBeObservedBySystem {
 
     /** ID of an [Entity] this component is plugged into. -1 if there is no entity.

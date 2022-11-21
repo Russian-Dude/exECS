@@ -3,9 +3,13 @@ package com.rdude.exECS.component
 import com.rdude.exECS.utils.collections.EntitiesSet
 import java.util.*
 
-/** Rich component is a [Component] that knows to which entities it is plugged into.
+/** [Component] that knows to which entities it is plugged into.
  *
- * Component should not implement both interfaces: [RichComponent] and [UniqueComponent].*/
+ * Component should not implement both [RichComponent] and [UniqueComponent] interfaces.
+ *
+ * @see ImmutableComponent
+ * @see ObservableComponent
+ * @see UniqueComponent*/
 interface RichComponent : Component, CanBeObservedBySystem {
 
     /** IDs of entities this component is plugged into.
