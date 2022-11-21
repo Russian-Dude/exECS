@@ -2,21 +2,41 @@ package com.rdude.exECS.component
 
 import com.rdude.exECS.aspect.AspectEntryElement
 import com.rdude.exECS.system.System
+import com.rdude.exECS.utils.componentTypeId
 import kotlin.reflect.KClass
 
-/** Condition that [ObservableComponent] can meet. [Systems][System] can subscribe to it.*/
-interface ComponentCondition<T> : AspectEntryElement where T : ObservableComponent<*>, T : CanBeObservedBySystem {
+/** Condition that [Component] can meet. [Systems][System] can subscribe to it.*/
+sealed class ComponentCondition<T : Component>(@JvmField val componentTypeId: Int) : AspectEntryElement {
 
-    val componentClass: KClass<T>
+    abstract fun test(component: T): Boolean
 
-    val predicate: T.() -> Boolean
+    companion object {
 
-    fun test(component: T): Boolean = component.predicate()
+        operator fun <T : ImmutableComponent> invoke(componentClass: KClass<T>, predicate: T.() -> Boolean) =
+            object : ImmutableComponentCondition<T>(componentClass) {
+                override fun test(component: T): Boolean = component.predicate()
+            }
+
+        operator fun <T : ImmutableComponent> invoke(instance: T) =
+            object : ImmutableComponentCondition<T>(instance::class.componentTypeId) {
+                override fun test(component: T): Boolean = component == instance
+            }
+
+        operator fun <T> invoke(componentClass: KClass<T>, predicate: T.() -> Boolean) where T : ObservableComponent<*>, T : CanBeObservedBySystem =
+            object : ObservableComponentCondition<T>(componentClass) {
+                override fun test(component: T): Boolean = component.predicate()
+            }
+
+    }
 
 }
 
+abstract class ImmutableComponentCondition<T : ImmutableComponent> internal constructor(componentTypeId: Int) :
+    ComponentCondition<T>(componentTypeId) {
+    constructor(componentCl: KClass<T>) : this(componentCl.componentTypeId)
+}
 
-class SimpleComponentCondition<T>(
-    override val componentClass: KClass<T>,
-    override val predicate: T.() -> Boolean
-) : ComponentCondition<T> where T : ObservableComponent<*>, T : CanBeObservedBySystem
+abstract class ObservableComponentCondition<T> internal constructor(componentTypeId: Int) :
+    ComponentCondition<T>(componentTypeId) where T : ObservableComponent<*>, T : CanBeObservedBySystem {
+    constructor(componentCl: KClass<T>) : this(componentCl.componentTypeId)
+}

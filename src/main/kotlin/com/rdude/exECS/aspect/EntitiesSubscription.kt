@@ -1,7 +1,8 @@
 package com.rdude.exECS.aspect
 
-import com.rdude.exECS.component.*
-import com.rdude.exECS.entity.EntityMapper
+import com.rdude.exECS.component.Component
+import com.rdude.exECS.component.ComponentCondition
+import com.rdude.exECS.component.ComponentMapper
 import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.IntIterableArray
@@ -16,8 +17,7 @@ import com.rdude.exECS.world.World
  * Entities subscription is shared between different [System]s with equal [Aspect] in the same [World].*/
 internal class EntitiesSubscription(world: World, aspect: Aspect) {
 
-    /** This subscription can be subscribed to an entities contained in this [EntityMapper].*/
-    private val entityMapper = world.entityMapper
+    private val componentMappers = world.entityMapper.componentMappers
 
     /** Entities ids to which this instance is subscribed.*/
     @JvmField internal var entityIDs = IntIterableArray()
@@ -31,6 +31,7 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
     /** Marking that at least one entity has been removed from the [World] and must be unsubscribed.*/
     private var hasRemoveRequests = false
 
+
     /** To be subscribed to an entity, it must have any of these component types (by id).*/
     private val anyOfByType: IntIterableArray
 
@@ -39,16 +40,6 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
 
     /** To be subscribed to an entity, it must have none of these component types (by id).*/
     private val excludeByType: IntIterableArray
-
-
-    /** To be subscribed to an entity, it must have a state that equals to any of these states.*/
-    private val anyOfByImmutableComponent: IterableArray<ImmutableComponent>
-
-    /** To be subscribed to an entity, it must have states that equal to all of these states.*/
-    private val allOfByImmutableComponent: IterableArray<ImmutableComponent>
-
-    /** To be subscribed to an entity, it must not have a state that equals to any of these states.*/
-    private val excludeByImmutableComponent: IterableArray<ImmutableComponent>
 
 
     /** To be subscribed to an entity, it must have a component that matches any of these conditions.*/
@@ -70,40 +61,28 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
         anyOfByType = IntIterableArray(true, *anyOfTypeIds)
         anyOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        anyOfByImmutableComponent = IterableArray(true, *aspect.anyOf.immutableComponents.toTypedArray())
-        anyOfByImmutableComponent.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
-
         anyOfComponentConditions = IterableArray(true, *aspect.anyOf.conditions.toTypedArray())
-        anyOfComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
+        anyOfComponentConditions.forEach { componentTypeIDs[it.componentTypeId] = true }
 
         val allOfTypeIds = aspect.allOf.types.map { it.componentTypeId }.toIntArray()
         allOfByType = IntIterableArray(true, *allOfTypeIds)
         allOfTypeIds.forEach { componentTypeIDs[it] = true }
 
-        allOfByImmutableComponent = IterableArray(true, *aspect.allOf.immutableComponents.toTypedArray())
-        allOfByImmutableComponent.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
-
         allOfComponentConditions = IterableArray(true, *aspect.allOf.conditions.toTypedArray())
-        allOfComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
+        allOfComponentConditions.forEach { componentTypeIDs[it.componentTypeId] = true }
 
         val excludeTypeIds = aspect.exclude.types.map { it.componentTypeId }.toIntArray()
         excludeByType = IntIterableArray(true, *excludeTypeIds)
         excludeTypeIds.forEach { componentTypeIDs[it] = true }
 
-        excludeByImmutableComponent = IterableArray(true, *aspect.exclude.immutableComponents.toTypedArray())
-        excludeByImmutableComponent.forEach { componentTypeIDs[it.getComponentTypeId()] = true }
-
         excludeComponentConditions = IterableArray(true, *aspect.exclude.conditions.toTypedArray())
-        excludeComponentConditions.forEach { componentTypeIDs[it.componentClass.componentTypeId] = true }
+        excludeComponentConditions.forEach { componentTypeIDs[it.componentTypeId] = true }
 
         if (excludeByType.isNotEmpty()) entityMatchChecks.add(CheckExcludeType())
-        if (excludeByImmutableComponent.isNotEmpty()) entityMatchChecks.add(CheckExcludeState())
         if (excludeComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckExcludeComponentCondition())
         if (anyOfByType.isNotEmpty()) entityMatchChecks.add(CheckAnyOfType())
-        if (anyOfByImmutableComponent.isNotEmpty()) entityMatchChecks.add(CheckAnyOfState())
         if (anyOfComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckAnyOfComponentCondition())
         if (allOfByType.isNotEmpty()) entityMatchChecks.add(CheckAllOfType())
-        if (allOfByImmutableComponent.isNotEmpty()) entityMatchChecks.add(CheckAllOfState())
         if (allOfComponentConditions.isNotEmpty()) entityMatchChecks.add(CheckAllOfComponentCondition())
     }
 
@@ -159,78 +138,53 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
     }
 
     /** Checks whether the entity meets the requirements of this subscription.*/
-    fun checkEntityMatch(entityID: Int): Boolean = entityMatchChecks.all { it.check(entityID, entityMapper) }
+    fun checkEntityMatch(entityID: Int): Boolean = entityMatchChecks.all { it.check(entityID, componentMappers) }
 
 
     private interface Check {
-        fun check(entityID: Int, entityMapper: EntityMapper): Boolean
+        fun check(entityID: Int, componentMappers: Array<ComponentMapper<*>>): Boolean
     }
 
     private inner class CheckExcludeType : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            excludeByType.none { entityMapper.componentMappers[it][entityID] != null }
-    }
-
-    private inner class CheckExcludeState : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            excludeByImmutableComponent.none { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+        override fun check(entityID: Int, componentMappers: Array<ComponentMapper<*>>): Boolean =
+            excludeByType.none { componentMappers[it][entityID] != null }
     }
 
     private inner class CheckExcludeComponentCondition : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+        @Suppress("UNCHECKED_CAST")
+        override fun check(entityID: Int, componentMappers: Array<ComponentMapper<*>>): Boolean =
             excludeComponentConditions.none {
-                val component = entityMapper.componentMappers[it.componentClass.componentTypeId][entityID]
-                if (component == null) false else it.unsafeTest(component)
+                val component = componentMappers[it.componentTypeId][entityID]
+                if (component == null) false else (it as ComponentCondition<Component>).test(component)
             }
     }
 
     private inner class CheckAnyOfType : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            anyOfByType.any { entityMapper.componentMappers[it][entityID] != null }
-    }
-
-    private inner class CheckAnyOfState : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            anyOfByImmutableComponent.any { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
+        override fun check(entityID: Int, componentMappers: Array<ComponentMapper<*>>): Boolean =
+            anyOfByType.any { componentMappers[it][entityID] != null }
     }
 
     private inner class CheckAnyOfComponentCondition : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+        @Suppress("UNCHECKED_CAST")
+        override fun check(entityID: Int, componentMappers: Array<ComponentMapper<*>>): Boolean =
             anyOfComponentConditions.any {
-                val component = entityMapper.componentMappers[it.componentClass.componentTypeId][entityID]
-                if (component == null) false else it.unsafeTest(component)
+                val component = componentMappers[it.componentTypeId][entityID]
+                if (component == null) false else (it as ComponentCondition<Component>).test(component)
             }
     }
 
     private inner class CheckAllOfType : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            allOfByType.all { entityMapper.componentMappers[it][entityID] != null }
+        override fun check(entityID: Int, componentMappers: Array<ComponentMapper<*>>): Boolean =
+            allOfByType.all { componentMappers[it][entityID] != null }
     }
 
     private inner class CheckAllOfComponentCondition : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
+        @Suppress("UNCHECKED_CAST")
+        override fun check(entityID: Int, componentMappers: Array<ComponentMapper<*>>): Boolean =
             allOfComponentConditions.all {
-                val component = entityMapper.componentMappers[it.componentClass.componentTypeId][entityID]
-                if (component == null) false else it.unsafeTest(component)
+                val component = componentMappers[it.componentTypeId][entityID]
+                if (component == null) false else (it as ComponentCondition<Component>).test(component)
             }
-    }
-
-    private inner class CheckAllOfState : Check {
-        override fun check(entityID: Int, entityMapper: EntityMapper): Boolean =
-            allOfByImmutableComponent.all { entityMapper.componentMappers[it.getComponentTypeId()][entityID] == it }
-    }
-
-
-    // both methods below used to hack compiler errors
-    private inline fun ComponentCondition<*>.unsafeTest(component: Component): Boolean {
-        component as ObservableComponent<*>?
-        component as CanBeObservedBySystem?
-        return component.unsafeTestByCondition(this)
-    }
-
-    private inline fun <T> T.unsafeTestByCondition(condition: ComponentCondition<*>): Boolean where T : ObservableComponent<*>, T : CanBeObservedBySystem {
-        condition as ComponentCondition<T>
-        return condition.test(this)
     }
 
 }

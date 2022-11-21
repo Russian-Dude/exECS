@@ -18,7 +18,6 @@ internal class AspectTest {
     private inner class Component4 : Component
     private inner class Component5 : Component
     private inner class ImmutableComponent1 : ImmutableComponent
-    private inner class ImmutableComponent2 : ImmutableComponent
 
     private inner class AllOf123 : IterableActingSystem(allOf = Component1::class and Component2::class and Component3::class) {
         var fired = false
@@ -126,21 +125,8 @@ internal class AspectTest {
     }
 
     private inner class WrongSystem3 : IterableActingSystem(
-        allOf = state1 and state1,
-        exclude = Component1::class
-    ) {
-        override fun act(entity: Entity) { }
-    }
-
-    private inner class WrongSystem4 : IterableActingSystem(
-        allOf = state1 and Component2::class,
-        exclude = state1
-    ) {
-        override fun act(entity: Entity) { }
-    }
-
-    private inner class WrongSystem5 : IterableActingSystem(
         allOf = state1 and state2,
+        exclude = ImmutableComponent1::class
     ) {
         override fun act(entity: Entity) { }
     }
@@ -407,16 +393,6 @@ internal class AspectTest {
     @Test
     fun wrongAspect3() {
         assertThrows<AspectNotCorrectException> { WrongSystem3() }
-    }
-
-    @Test
-    fun wrongAspect4() {
-        assertThrows<AspectNotCorrectException> { WrongSystem4() }
-    }
-
-    @Test
-    fun wrongAspect5() {
-        assertThrows<AspectNotCorrectException> { WrongSystem5() }
     }
 
 

@@ -30,8 +30,8 @@ import kotlin.reflect.KClass
  * Conditions can be represented by:
  * * *'MyComponent::class'* - Entities that has a [Component] of the specified type
  * * *'myComponentInstance'* - Entities that has a [ImmutableComponent] that is equals to the specified Component instance
- * * *'MyComponent::class { value > 15 }'* - Entities that has an [ObservableComponent] of the specified type
- * which is satisfied the given predicate. Observable component must also implement either [UniqueComponent] or [RichComponent]
+ * * *'MyComponent::class { value > 15 }'* - Entities that has an [ImmutableComponent] or [ObservableComponent] of the specified type
+ * which is satisfied the given predicate. Observable Component must also implement either [UniqueComponent] or [RichComponent]
  *
  * Example:
  * ```
@@ -199,98 +199,62 @@ abstract class IterableEventSystem<T : Event>(val aspect: Aspect) : EventSystem<
     protected companion object {
 
         @JvmStatic
+        @JvmName("createObservableComponentCondition")
         protected inline operator fun <reified T> KClass<T>.invoke(noinline condition: T.() -> Boolean): ComponentCondition<T> where T : ObservableComponent<*>, T : CanBeObservedBySystem =
-            SimpleComponentCondition(T::class, condition)
+            ComponentCondition(T::class, condition)
 
         @JvmStatic
-        protected infix fun KClass<out Component>.and(other: KClass<out Component>): AspectEntry {
-            val entry = AspectEntry()
-            entry.types.add(this)
-            entry.types.add(other)
-            return entry
-        }
+        @JvmName("createImmutableComponentCondition")
+        protected inline operator fun <reified T : ImmutableComponent> KClass<T>.invoke(noinline condition: T.() -> Boolean): ComponentCondition<T> =
+            ComponentCondition(T::class, condition)
 
         @JvmStatic
-        protected infix fun ImmutableComponent.and(other: KClass<out Component>): AspectEntry {
-            val entry = AspectEntry()
-            entry.immutableComponents.add(this)
-            entry.types.add(other)
-            return entry
-        }
+        protected infix fun KClass<out Component>.and(other: KClass<out Component>): AspectEntry =
+            AspectEntry(mutableListOf(this, other))
 
         @JvmStatic
-        protected infix fun KClass<out Component>.and(other: ImmutableComponent): AspectEntry {
-            val entry = AspectEntry()
-            entry.types.add(this)
-            entry.immutableComponents.add(other)
-            return entry
-        }
+        protected infix fun ImmutableComponent.and(other: KClass<out Component>): AspectEntry =
+            AspectEntry(mutableListOf(other), mutableListOf(ComponentCondition(this)))
 
         @JvmStatic
-        protected infix fun ImmutableComponent.and(other: ImmutableComponent): AspectEntry {
-            val entry = AspectEntry()
-            entry.immutableComponents.add(this)
-            entry.immutableComponents.add(other)
-            return entry
-        }
+        protected infix fun KClass<out Component>.and(other: ImmutableComponent): AspectEntry =
+            AspectEntry(mutableListOf(this), mutableListOf(ComponentCondition(other)))
 
         @JvmStatic
-        protected infix fun AspectEntry.and(other: KClass<out Component>): AspectEntry {
-            types.add(other)
-            return this
-        }
+        protected infix fun ImmutableComponent.and(other: ImmutableComponent): AspectEntry =
+            AspectEntry(conditions = mutableListOf(ComponentCondition(this), ComponentCondition(other)))
 
         @JvmStatic
-        protected infix fun AspectEntry.and(other: ImmutableComponent): AspectEntry {
-            immutableComponents.add(other)
-            return this
-        }
+        protected infix fun AspectEntry.and(other: KClass<out Component>): AspectEntry =
+            apply { types.add(other) }
 
         @JvmStatic
-        protected infix fun AspectEntry.and(other: ComponentCondition<*>): AspectEntry {
-            conditions.add(other)
-            return this
-        }
+        protected infix fun AspectEntry.and(other: ImmutableComponent): AspectEntry =
+            apply { conditions.add(ComponentCondition(other)) }
 
         @JvmStatic
-        protected infix fun KClass<out Component>.and(other: ComponentCondition<*>): AspectEntry {
-            val entry = AspectEntry()
-            entry.types.add(this)
-            entry.conditions.add(other)
-            return entry
-        }
+        protected infix fun AspectEntry.and(other: ComponentCondition<*>): AspectEntry =
+            apply { conditions.add(other) }
 
         @JvmStatic
-        protected infix fun ImmutableComponent.and(other: ComponentCondition<*>): AspectEntry {
-            val entry = AspectEntry()
-            entry.immutableComponents.add(this)
-            entry.conditions.add(other)
-            return entry
-        }
+        protected infix fun KClass<out Component>.and(other: ComponentCondition<*>): AspectEntry =
+            AspectEntry(mutableListOf(this), mutableListOf(other))
 
         @JvmStatic
-        protected infix fun ComponentCondition<*>.and(other: ComponentCondition<*>): AspectEntry {
-            val entry = AspectEntry()
-            entry.conditions.add(this)
-            entry.conditions.add(other)
-            return entry
-        }
+        protected infix fun ImmutableComponent.and(other: ComponentCondition<*>): AspectEntry =
+            AspectEntry(conditions = mutableListOf(ComponentCondition(this), other))
 
         @JvmStatic
-        protected infix fun ComponentCondition<*>.and(other: ImmutableComponent): AspectEntry {
-            val entry = AspectEntry()
-            entry.conditions.add(this)
-            entry.immutableComponents.add(other)
-            return entry
-        }
+        protected infix fun ComponentCondition<*>.and(other: ComponentCondition<*>): AspectEntry =
+            AspectEntry(conditions = mutableListOf(this, other))
 
         @JvmStatic
-        protected infix fun ComponentCondition<*>.and(other: KClass<out Component>): AspectEntry {
-            val entry = AspectEntry()
-            entry.conditions.add(this)
-            entry.types.add(other)
-            return entry
-        }
+        protected infix fun ComponentCondition<*>.and(other: ImmutableComponent): AspectEntry =
+            AspectEntry(conditions = mutableListOf(this, ComponentCondition(other)))
+
+        @JvmStatic
+        protected infix fun ComponentCondition<*>.and(other: KClass<out Component>): AspectEntry =
+            AspectEntry(mutableListOf(other), mutableListOf(this))
     }
 
 }

@@ -140,13 +140,10 @@ class Aspect(
         if (this === other) return true
         if (other !is Aspect) return false
         if (allOf.types notEqualsWithAnyOrder other.allOf.types) return false
-        if (allOf.immutableComponents notEqualsWithAnyOrder other.allOf.immutableComponents) return false
         if (allOf.conditions notEqualsWithAnyOrder other.allOf.conditions) return false
         if (anyOf.types notEqualsWithAnyOrder other.anyOf.types) return false
-        if (anyOf.immutableComponents notEqualsWithAnyOrder other.anyOf.immutableComponents) return false
         if (anyOf.conditions notEqualsWithAnyOrder other.anyOf.conditions) return false
         if (exclude.types notEqualsWithAnyOrder other.exclude.types) return false
-        if (exclude.immutableComponents notEqualsWithAnyOrder other.exclude.immutableComponents) return false
         if (exclude.conditions notEqualsWithAnyOrder other.exclude.conditions) return false
         return true
     }

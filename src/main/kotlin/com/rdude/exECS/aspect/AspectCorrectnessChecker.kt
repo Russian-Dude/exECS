@@ -2,6 +2,8 @@ package com.rdude.exECS.aspect
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.exception.AspectNotCorrectException
+import com.rdude.exECS.utils.ExEcs
+import com.rdude.exECS.utils.componentTypeId
 import kotlin.reflect.KClass
 
 internal class AspectCorrectnessChecker {
@@ -16,21 +18,42 @@ internal class AspectCorrectnessChecker {
 
     /** Checks for duplicates in the same [AspectEntry].*/
     private fun checkForDuplicatesInEntry(aspectEntry: AspectEntry) {
-        for (stateComponent in aspectEntry.immutableComponents) {
-            if (aspectEntry.types.contains(stateComponent::class))
-                throwDuplicateFound(stateComponent::class)
-        }
-        aspectEntry.immutableComponents.reduceOrNull { acc, state -> if (acc == state) throwDuplicateFound(acc::class); acc }
         aspectEntry.types.reduceOrNull { acc, state -> if (acc == state) throwDuplicateFound(acc); acc }
     }
 
     /** Checks for duplicates in all [AspectEntry] instances in one [Aspect].*/
     private fun checkForDuplicatesBetweenEntries(aspect: Aspect) {
-        val anyOf = aspect.anyOf.types + aspect.anyOf.immutableComponents.map { it::class }
-        val allOf = aspect.allOf.types + aspect.allOf.immutableComponents.map { it::class }
-        val exclude = aspect.exclude.types + aspect.exclude.immutableComponents.map { it::class }
-        val all = anyOf + allOf + exclude
-        all.groupingBy { it }.eachCount().filterValues { it > 1 }.forEach { (type, _) -> throwDuplicateFound(type) }
+        // anyOf type, allOf type
+        aspect.anyOf.types
+            .find { type -> aspect.allOf.types.any { type == it } }
+            ?.also { throwDuplicateFound(it) }
+
+        // anyOf type, allOf condition
+        aspect.anyOf.types
+            .find { type -> aspect.allOf.conditions.map { it.componentTypeId }.any { type.componentTypeId == it } }
+            ?.also { throwDuplicateFound(it) }
+
+        // anyOf type, exclude type
+        aspect.anyOf.types
+            .find { type -> aspect.exclude.types.any { type == it } }
+            ?.also { throwDuplicateFound(it) }
+
+        // allOf type, exclude type
+        aspect.allOf.types
+            .find { type -> aspect.exclude.types.any { type == it } }
+            ?.also { throwDuplicateFound(it) }
+
+        // anyOf condition, exclude type
+        aspect.anyOf.conditions
+            .map { it.componentTypeId }
+            .find { typeId -> aspect.exclude.types.any { typeId == it.componentTypeId } }
+            ?.also { throwDuplicateFound(ExEcs.componentTypeIDsResolver.typeById(it)) }
+
+        // allOf condition, exclude type
+        aspect.allOf.conditions
+            .map { it.componentTypeId }
+            .find { typeId -> aspect.exclude.types.any { typeId == it.componentTypeId } }
+            ?.also { throwDuplicateFound(ExEcs.componentTypeIDsResolver.typeById(it)) }
     }
 
     private fun checkForEmptyAspect(aspect: Aspect) {
