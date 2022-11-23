@@ -38,7 +38,7 @@ class BitSet(size: Int = 1) {
     }
 
     private fun growIfNeeded(size: Int) {
-        if (data.size shl 6 < size) {
+        if (data.size shl 6 <= size) {
             grow(getNewSize(data.size, size ushr 6))
         }
     }
