@@ -263,6 +263,27 @@ abstract class WorldAccessor {
     protected fun Entity.remove() = (world ?: throw WorldNotSetException(this@WorldAccessor)).requestRemoveEntity(id)
 
 
+    /** @return this Entity as a [SingletonEntity] of type [T] or ``null`` if this Entity is not
+     * a SingletonEntity of type T.
+     * @throws [NoEntityException] if this Entity is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
+    protected inline fun <reified T : SingletonEntity> Entity.asSingleton(): T? = asSingleton(T::class)
+
+
+    /** @return this Entity as a [SingletonEntity] of type [T] or ``null`` if this Entity is not
+     * a SingletonEntity of type T.
+     * @throws [NoEntityException] if this Entity is [Entity.NO_ENTITY]
+     * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
+    @Suppress("UNCHECKED_CAST")
+    protected fun <T : SingletonEntity> Entity.asSingleton(singletonCl: KClass<T>): T? {
+        val entityMapper = (world ?: throw WorldNotSetException(this@WorldAccessor)).entityMapper
+        if (this.id == Entity.NO_ENTITY.id) throw NoEntityException("Can not get Entity as SingletonEntity. Entity is Entity.NO_ENTITY")
+        if (this.id >= entityMapper.reservedForSingletons) return null
+        val singleton = entityMapper.singletons[this.id] ?: return null
+        return if (singleton::class == singletonCl) singleton as T else null
+    }
+
+
     /** Removes this [Entity] from the parent Entity if this Entity is a child.
      * @throws [NoEntityException] if this Entity is [Entity.NO_ENTITY]
      * @throws [WorldNotSetException] if [world] property of the [WorldAccessor] in the context of which this method is called is null*/
