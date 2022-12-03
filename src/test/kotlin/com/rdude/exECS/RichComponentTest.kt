@@ -48,7 +48,6 @@ class RichComponentTest {
     fun removeComponent() {
         EntityUnoptimizedMethods.removeComponent<TestRichComponent>(richComponent.insideEntitiesSet.first(), world)
         world.act()
-        println(richComponent.insideEntitiesSet.size)
         assert(richComponent.insideEntitiesSet.size == 1)
     }
 

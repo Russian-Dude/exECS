@@ -2,22 +2,31 @@ package com.rdude.exECS.aspect
 
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.EntityMapper
+import com.rdude.exECS.entity.EntityOrder
 import com.rdude.exECS.system.IterableEventSystem
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.collections.*
 import com.rdude.exECS.utils.fastForEach
 import com.rdude.exECS.world.World
 
-internal class SubscriptionsManager(private val world: World, freshAddedEntitiesArray: IntIterableArray, freshRemovedEntitiesArray: IntArrayStackSet) {
+internal class SubscriptionsManager(
+    private val world: World,
+    freshAddedEntitiesArray: IntIterableArray,
+    freshRemovedEntitiesArray: IntArrayStackSet,
+    private val initialEntitiesCapacity: Int
+) {
 
     /** All subscriptions.*/
     private val subscriptions = IterableArray<EntitiesSubscription>()
 
-    /** Subscriptions grouped by component type ids.*/
-    private val subscriptionsByComponentType = Array(ExEcs.componentTypeIDsResolver.size) { IterableArray<EntitiesSubscription>() }
+    /** Subscriptions grouped by [Aspect] component type ids.*/
+    private val subscriptionsByAspectComponentType = Array(ExEcs.componentTypeIDsResolver.size) { IterableArray<EntitiesSubscription>() }
+
+    /** Subscriptions grouped by [EntityOrder] component type ids. */
+    private val subscriptionsByOrderComponentType = Array(ExEcs.componentTypeIDsResolver.size) { IterableArray<EntitiesSubscription>() }
 
     /** Changes of components (added, removed, observable changed).
-     *  Based on these changes, subscriptions can subscribe or unsubscribe from entities.
+     *  Based on these changes, subscriptions can subscribe or unsubscribe from entities or perform sorting.
      *  Long values in array are [ComponentTypeToEntityPair].*/
     private val componentsChanges = LongIterableArray()
 
@@ -35,23 +44,31 @@ internal class SubscriptionsManager(private val world: World, freshAddedEntities
 
     /** Sets either an existing suitable [EntitiesSubscription] for the [system] or creates a new one.*/
     internal fun registerSystem(system: IterableEventSystem<*>) {
-        var subscriptionCopied = false
         world.systems.fastForEach { otherSystem ->
-            if (otherSystem !== system && otherSystem is IterableEventSystem<*> && system.aspect == otherSystem.aspect) {
+            if (otherSystem !== system
+                && otherSystem is IterableEventSystem<*>
+                && system.entityOrder.orderDefinition == otherSystem.entityOrder.orderDefinition
+                && system.aspect == otherSystem.aspect
+            ) {
                 system.entitiesSubscription = otherSystem.entitiesSubscription
-                subscriptionCopied = true
-                return@fastForEach
+                return
             }
         }
-        if (!subscriptionCopied) {
-            val subscription = EntitiesSubscription(world, system.aspect)
-            for (entityId in 0 until world.entityMapper.nextID) {
-                subscription.tryToSubscribe(entityId)
-            }
-            system.entitiesSubscription = subscription
-            world.entityMapper.linkEntityBitSet(system.entitiesSubscription!!.hasEntities)
-            subscriptions.add(subscription)
-            subscription.componentTypeIDs.getTrueValues().forEach { subscriptionsByComponentType[it].add(subscription) }
+
+        val subscription = EntitiesSubscription(world, system.aspect, system.entityOrder, initialEntitiesCapacity)
+        for (entityId in 0 until world.entityMapper.nextID) {
+            subscription.tryToSubscribe(entityId)
+        }
+        system.entitiesSubscription = subscription
+        world.entityMapper.linkEntityBitSet(subscription.entities.presence)
+        world.entityMapper.linkEntityBitSet(subscription.entities.markedToRemove)
+        subscriptions.add(subscription)
+
+        system.aspect.getComponentTypeIds().forEach {
+            subscriptionsByAspectComponentType[it].add(subscription)
+        }
+        system.entityOrder.dependsOnComponentTypes.forEach {
+            subscriptionsByOrderComponentType[it].add(subscription)
         }
     }
 
@@ -82,12 +99,13 @@ internal class SubscriptionsManager(private val world: World, freshAddedEntities
             val change = ComponentTypeToEntityPair(c)
             val entityID = change.entityId()
             val componentTypeID = change.componentId()
-            subscriptionsByComponentType[componentTypeID]
+            subscriptionsByAspectComponentType[componentTypeID]
                 .forEach { it.updateSubscription(entityID) }
+            subscriptionsByOrderComponentType[componentTypeID]
+                .forEach { it.notifyChange(entityID) }
         }
         // final
         componentsChanges.clear()
-        subscriptions.forEach { it.unsubscribeMarked() }
         freshRemovedEntities.clear()
         freshAddedEntities.clear()
         updateRequired = false
@@ -95,9 +113,10 @@ internal class SubscriptionsManager(private val world: World, freshAddedEntities
 
     internal fun entityChangedId(fromId: Int, toId: Int) {
         subscriptions.forEach { subscription ->
-            if (subscription.hasEntities[fromId]) {
-                subscription.forceUnsubscribe(fromId)
-                subscription.forceSubscribe(toId)
+            val entities = subscription.entities
+            if (entities.presence[fromId]) {
+                entities.requestRemove(fromId)
+                entities.add(toId)
             }
         }
     }
@@ -105,6 +124,7 @@ internal class SubscriptionsManager(private val world: World, freshAddedEntities
     /** Unsubscribe all subscriptions from all entities.*/
     internal fun unsubscribeAll() {
         subscriptions.forEach { it.unsubscribeAll() }
+        componentsChanges.clear()
     }
 
 }

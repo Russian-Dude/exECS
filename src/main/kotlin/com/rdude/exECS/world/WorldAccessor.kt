@@ -330,4 +330,89 @@ abstract class WorldAccessor {
         if (this.id < 0) throw NoEntityException("Can not generate Components list for Entity.NO_ENTITY")
         else world?.entityMapper?.componentMappers?.mapNotNull { it[id] } ?: throw WorldNotSetException(this@WorldAccessor)
 
+
+    // generating here because access to the entity methods is required
+    internal fun generateEntityOrder(definition: EntityOrder.Definition): EntityOrder =
+        when (definition) {
+            is EntityOrder.Definition.NotSpecified -> EntityOrder.NOT_SPECIFIED
+            is EntityOrder.Definition.By<*> -> generateEntityOrderBy(definition)
+            is EntityOrder.Definition.Having -> generateEntityOrderHaving(definition)
+            // Exception should never occur
+            is EntityOrder.Definition.Custom -> throw RuntimeException("Custom EntityOrder can not be generated and must be specified manually")
+        }
+
+    private fun generateEntityOrderHaving(definition: EntityOrder.Definition.Having): EntityOrder =
+        with(definition) {
+            if (nullsFirst) EntityOrder(definition, cl) { e1, e2 ->
+                val c1 = e1.getComponent(cl)
+                val c2 = e2.getComponent(cl)
+                if (c1 == null) {
+                    if (c2 == null) 0
+                    else -1
+                } else {
+                    if (c2 == null) 1
+                    else 0
+                }
+            }
+            else EntityOrder(definition, cl) { e1, e2 ->
+                val c1 = e1.getComponent(cl)
+                val c2 = e2.getComponent(cl)
+                if (c1 == null) {
+                    if (c2 == null) 0
+                    else 1
+                } else {
+                    if (c2 == null) -1
+                    else 0
+                }
+            }
+        }
+
+    private fun <C> generateEntityOrderBy(definition: EntityOrder.Definition.By<C>): EntityOrder where C : Component, C : Comparable<C> =
+        with(definition) {
+            if (ascending) {
+                if (nullsFirst) EntityOrder(definition, cl) { e1, e2 ->
+                    val c1 = e1.getComponent(cl)
+                    val c2 = e2.getComponent(cl)
+                    if (c1 != null) {
+                        if (c2 == null) 1
+                        else c1.compareTo(c2)
+                    }
+                    else if (c2 != null) -1
+                    else 0
+                }
+                else EntityOrder(definition, cl) { e1, e2 ->
+                    val c1 = e1.getComponent(cl)
+                    val c2 = e2.getComponent(cl)
+                    if (c1 != null) {
+                        if (c2 == null) -1
+                        else c1.compareTo(c2)
+                    }
+                    else if (c2 != null) 1
+                    else 0
+                }
+            }
+            else {
+                if (nullsFirst) EntityOrder(definition, cl) { e1, e2 ->
+                    val c1 = e1.getComponent(cl)
+                    val c2 = e2.getComponent(cl)
+                    if (c1 != null) {
+                        if (c2 == null) 1
+                        else -c1.compareTo(c2)
+                    }
+                    else if (c2 != null) -1
+                    else 0
+                }
+                else EntityOrder(definition, cl) { e1, e2 ->
+                    val c1 = e1.getComponent(cl)
+                    val c2 = e2.getComponent(cl)
+                    if (c1 != null) {
+                        if (c2 == null) -1
+                        else -c1.compareTo(c2)
+                    }
+                    else if (c2 != null) 1
+                    else 0
+                }
+            }
+        }
+
 }

@@ -3,9 +3,11 @@ package com.rdude.exECS.aspect
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentCondition
 import com.rdude.exECS.component.ComponentMapper
+import com.rdude.exECS.entity.EntityOrder
 import com.rdude.exECS.system.System
 import com.rdude.exECS.utils.ExEcs
-import com.rdude.exECS.utils.collections.IntIterableArray
+import com.rdude.exECS.utils.collections.*
+import com.rdude.exECS.utils.collections.EntitiesIterableArray
 import com.rdude.exECS.utils.collections.IterableArray
 import com.rdude.exECS.utils.collections.UnsafeBitSet
 import com.rdude.exECS.utils.componentTypeId
@@ -14,22 +16,19 @@ import com.rdude.exECS.world.World
 /** Stores the entities to which it is subscribed and the requirements for the entities that they must meet in order
  * to be subscribed to them.
  *
- * Entities subscription is shared between different [System]s with equal [Aspect] in the same [World].*/
-internal class EntitiesSubscription(world: World, aspect: Aspect) {
+ * Entities subscription is shared between different [System]s with equal [Aspect] and [EntityOrder.Definition] in the same [World].*/
+internal class EntitiesSubscription(
+    world: World,
+    aspect: Aspect,
+    entityOrder: EntityOrder,
+    initialCapacity: Int
+) {
 
     private val componentMappers = world.entityMapper.componentMappers
 
-    /** Entities ids to which this instance is subscribed.*/
-    @JvmField internal var entityIDs = IntIterableArray()
+    @JvmField internal val entities = EntitiesIterableArray(initialCapacity, entityOrder.comparator)
 
-    /** Fast way to check if this subscription is subscribed to an entity.*/
-    @JvmField internal var hasEntities = UnsafeBitSet()
-
-    /** IDs of component types that are relevant for this subscription.*/
-    @JvmField internal var componentTypeIDs = UnsafeBitSet(ExEcs.componentTypeIDsResolver.size)
-
-    /** Marking that at least one entity has been removed from the [World] and must be unsubscribed.*/
-    private var hasRemoveRequests = false
+    private val componentTypeIDs = UnsafeBitSet(ExEcs.componentTypeIDsResolver.size)
 
 
     /** To be subscribed to an entity, it must have any of these component types (by id).*/
@@ -87,58 +86,37 @@ internal class EntitiesSubscription(world: World, aspect: Aspect) {
     }
 
 
-    /** Subscribes, marks to unsubscribe, or retains a subscription to the entity, depending on whether the entity meets the requirements.*/
+    /** Subscribes, unsubscribes, or retains a subscription to the Entity, depending on whether it meets the requirements.*/
     fun updateSubscription(entityID: Int) {
         val entityMatch = checkEntityMatch(entityID)
-        val hasEntity = hasEntities[entityID]
-        if (!entityMatch && hasEntity) {
-            markToUnsubscribe(entityID)
-        } else if (entityMatch && !hasEntity) {
-            forceSubscribe(entityID)
-        }
+        if (entityMatch) entities.add(entityID)
+        else entities.requestRemove(entityID)
     }
 
-    /** Marks the entity to be unsubscribed from this subscription.
-     * To finally unsubscribe marked entities [unsubscribeMarked] method should be called.
-     * In order to instantly unsubscribe the entity [forceUnsubscribe] method can be called instead.*/
-    fun markToUnsubscribe(entityId: Int) {
-        hasEntities.clear(entityId)
-        hasRemoveRequests = true
+    fun notifyChange(entityID: Int) {
+        entities.changeOccurred(entityID)
     }
 
-    /** Unsubscribes from the entities that are marked to be unsubscribed.*/
-    fun unsubscribeMarked() {
-        if (!hasRemoveRequests) return
-        entityIDs.removeIf { !hasEntities[it] }
-        hasRemoveRequests = false
-    }
-
-    /** Instantly unsubscribe from the entity.*/
-    fun forceUnsubscribe(entityId: Int) {
-        hasEntities.clear(entityId)
-        entityIDs.remove(entityId)
-    }
-
-    /** Subscribes to the entity if it is meets the requirements.*/
+    /** Subscribes to the Entity if it is meets the requirements.*/
     fun tryToSubscribe(entityID: Int) {
         if (checkEntityMatch(entityID)) forceSubscribe(entityID)
     }
 
-    /** Subscribes to the entity without check whether the entity meets the requirements.*/
-    fun forceSubscribe(entityId: Int) {
-        entityIDs.add(entityId)
-        hasEntities.set(entityId)
-    }
+    /** Subscribes to the Entity without check whether it meets the requirements.*/
+    fun forceSubscribe(entityId: Int) = entities.add(entityId)
 
-    /** Unsubscribes from all entities.*/
-    fun unsubscribeAll() {
-        entityIDs.clear()
-        hasEntities.clear()
-        hasRemoveRequests = false
-    }
+    /** Marks Entity to be unsubscribed. It will be removed from the subscription at the next entities iteration of
+     * any System that uses this subscription.*/
+    fun markToUnsubscribe(entityId: Int) = entities.requestRemove(entityId)
+
+    fun unsubscribeAll() = entities.clear()
+
+    inline fun forEach(action: (Int) -> Unit) = entities.forEach(action)
+
 
     /** Checks whether the entity meets the requirements of this subscription.*/
-    fun checkEntityMatch(entityID: Int): Boolean = entityMatchChecks.all { it.check(entityID, componentMappers) }
+    private inline fun checkEntityMatch(entityID: Int): Boolean =
+        entityMatchChecks.all { it.check(entityID, componentMappers) }
 
 
     private interface Check {

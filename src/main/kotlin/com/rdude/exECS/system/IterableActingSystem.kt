@@ -5,6 +5,7 @@ import com.rdude.exECS.aspect.AspectEntry
 import com.rdude.exECS.aspect.AspectEntryElement
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.entity.Entity
+import com.rdude.exECS.entity.EntityOrder
 import com.rdude.exECS.event.ActingEvent
 import com.rdude.exECS.world.World
 import kotlin.reflect.KClass
@@ -16,122 +17,149 @@ import kotlin.reflect.KClass
  * @see EventSystem
  * @see IterableEventSystem
  * @see ActingSystem*/
-abstract class IterableActingSystem(aspect: Aspect) : IterableEventSystem<ActingEvent>(aspect) {
+abstract class IterableActingSystem(aspect: Aspect, orderBy: EntityOrder.Definition) : IterableEventSystem<ActingEvent>(aspect, orderBy) {
 
     constructor(
         allOf: AspectEntry = AspectEntry(),
         anyOf: AspectEntry = AspectEntry(),
-        exclude: AspectEntry = AspectEntry()
-    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = exclude))
+        exclude: AspectEntry = AspectEntry(),
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = exclude), orderBy)
 
     constructor(
         allOf: List<KClass<out Component>> = listOf(),
         anyOf: List<KClass<out Component>> = listOf(),
-        exclude: List<KClass<out Component>> = listOf()
-    ) : this(allOf = AspectEntry(allOf), anyOf = AspectEntry(anyOf), exclude = AspectEntry(exclude))
+        exclude: List<KClass<out Component>> = listOf(),
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = AspectEntry(allOf), anyOf = AspectEntry(anyOf), exclude = AspectEntry(exclude), orderBy = orderBy)
 
     constructor(
         allOf: AspectEntry = AspectEntry(),
         anyOf: AspectEntry = AspectEntry(),
-        exclude: KClass<out Component>
-    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = AspectEntry(exclude)))
+        exclude: KClass<out Component>,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(Aspect(allOf = allOf, anyOf = anyOf, exclude = AspectEntry(exclude)), orderBy = orderBy)
 
     constructor(
         allOf: AspectEntry = AspectEntry(),
         anyOf: AspectEntry = AspectEntry(),
-        exclude: AspectEntryElement
-    ) : this(allOf = allOf, anyOf = anyOf, exclude = AspectEntry(exclude))
+        exclude: AspectEntryElement,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = allOf, anyOf = anyOf, exclude = AspectEntry(exclude), orderBy = orderBy)
 
     constructor(
         allOf: KClass<out Component>,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: KClass<out Component>
-    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
+        exclude: KClass<out Component>,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude), orderBy = orderBy)
 
     constructor(
         allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: KClass<out Component>
-    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
+        exclude: KClass<out Component>,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude), orderBy = orderBy)
 
     constructor(
         allOf: KClass<out Component>,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: AspectEntryElement
-    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
+        exclude: AspectEntryElement,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude), orderBy = orderBy)
 
     constructor(
         allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: AspectEntryElement
-    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude))
+        exclude: AspectEntryElement,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = AspectEntry(exclude), orderBy = orderBy)
 
     constructor(
         allOf: KClass<out Component>,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: AspectEntry = AspectEntry()
-    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude)
+        exclude: AspectEntry = AspectEntry(),
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude, orderBy = orderBy)
 
     constructor(
         allOf: AspectEntryElement,
         anyOf: AspectEntry = AspectEntry(),
-        exclude: AspectEntry = AspectEntry()
-    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude)
+        exclude: AspectEntry = AspectEntry(),
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(allOf = AspectEntry(allOf), anyOf = anyOf, exclude = exclude, orderBy = orderBy)
 
     constructor(
         only: KClass<out Component>,
-        exclude: KClass<out Component>
+        exclude: KClass<out Component>,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
-        exclude = AspectEntry(exclude))
-
-    constructor(
-        only: AspectEntryElement,
-        exclude: KClass<out Component>
-    ) : this(
-        allOf = AspectEntry(),
-        anyOf = AspectEntry(only),
-        exclude = AspectEntry(exclude)
-    )
-
-    constructor(
-        only: KClass<out Component>,
-        exclude: AspectEntryElement
-    ) : this(
-        allOf = AspectEntry(),
-        anyOf = AspectEntry(only),
-        exclude = AspectEntry(exclude)
+        exclude = AspectEntry(exclude),
+        orderBy = orderBy
     )
 
     constructor(
         only: AspectEntryElement,
-        exclude: AspectEntryElement
+        exclude: KClass<out Component>,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
-        exclude = AspectEntry(exclude)
+        exclude = AspectEntry(exclude),
+        orderBy = orderBy
     )
 
     constructor(
         only: KClass<out Component>,
-        exclude: AspectEntry = AspectEntry()
+        exclude: AspectEntryElement,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
-        exclude = exclude)
+        exclude = AspectEntry(exclude),
+        orderBy = orderBy
+    )
 
     constructor(
         only: AspectEntryElement,
-        exclude: AspectEntry = AspectEntry()
+        exclude: AspectEntryElement,
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
     ) : this(
         allOf = AspectEntry(),
         anyOf = AspectEntry(only),
-        exclude = exclude)
+        exclude = AspectEntry(exclude),
+        orderBy = orderBy
+    )
 
-    constructor(only: KClass<out Component>): this(Aspect(only = only))
+    constructor(
+        only: KClass<out Component>,
+        exclude: AspectEntry = AspectEntry(),
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(
+        allOf = AspectEntry(),
+        anyOf = AspectEntry(only),
+        exclude = exclude,
+        orderBy = orderBy
+    )
 
-    constructor(only: AspectEntryElement): this(Aspect(only = only))
+    constructor(
+        only: AspectEntryElement,
+        exclude: AspectEntry = AspectEntry(),
+        orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified
+    ) : this(
+        allOf = AspectEntry(),
+        anyOf = AspectEntry(only),
+        exclude = exclude,
+        orderBy = orderBy
+    )
+
+    constructor(only: KClass<out Component>, orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified):
+            this(Aspect(only = only), orderBy)
+
+    constructor(only: AspectEntryElement, orderBy: EntityOrder.Definition = EntityOrder.Definition.NotSpecified):
+            this(Aspect(only = only), orderBy)
 
 
     final override fun eventFired(entity: Entity, event: ActingEvent) {

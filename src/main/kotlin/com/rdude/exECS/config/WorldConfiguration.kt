@@ -13,34 +13,32 @@ import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.utils.ExEcs
 import com.rdude.exECS.utils.componentTypeId
 import com.rdude.exECS.world.World
+import com.rdude.exECS.world.WorldInitializer
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 
-class WorldConfiguration internal constructor(private val world: World) {
+class WorldConfiguration internal constructor(private val world: World, worldInitializer: WorldInitializer) {
 
 
     /** If true, [Events][Event] implementing [Poolable] will be automatically returned to the [Pool] as soon
      * as they are fired.*/
     @JvmField
-    var autoReturnPoolableEventsToPool: Boolean =
-        ExEcsGlobalConfiguration.worldDefaultConfiguration.autoReturnPoolableEventsToPool
+    var autoReturnPoolableEventsToPool: Boolean = worldInitializer.autoReturnPoolableEventsToPool
 
 
     /** [EventPriority] of [ActingEvent].*/
     @JvmField
-    var actingEventPriority: EventPriority = ExEcsGlobalConfiguration.worldDefaultConfiguration.actingEventPriority
+    var actingEventPriority: EventPriority = worldInitializer.actingEventPriority
 
 
-    /** If true, [ComponentAddedEvent] will be queued for every [Component] of added [Entity].*/
+    /** If true, [ComponentAddedEvent] will be queued for every [Component] every time an [Entity] is entered the [World].*/
     @JvmField
-    var queueComponentAddedWhenEntityAdded: Boolean =
-        ExEcsGlobalConfiguration.worldDefaultConfiguration.queueComponentAddedWhenEntityAdded
+    var queueComponentAddedWhenEntityAdded: Boolean = worldInitializer.queueComponentAddedWhenEntityAdded
 
 
-    /** If true, [ComponentRemovedEvent] will be queued for every [Component] of removed [Entity].*/
+    /** If true, [ComponentRemovedEvent] will be queued for every [Component] every time an [Entity] is removed from the [World].*/
     @JvmField
-    var queueComponentRemovedWhenEntityRemoved: Boolean =
-        ExEcsGlobalConfiguration.worldDefaultConfiguration.queueComponentRemovedWhenEntityRemoved
+    var queueComponentRemovedWhenEntityRemoved: Boolean = worldInitializer.queueComponentRemovedWhenEntityRemoved
 
 
     /** If true, all [Poolable] [Components][Component] will be automatically returned to the [Pool] as soon

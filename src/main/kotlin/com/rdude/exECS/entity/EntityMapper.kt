@@ -17,11 +17,16 @@ import com.rdude.exECS.utils.componentTypeId
 import com.rdude.exECS.utils.fastForEachIndexed
 import com.rdude.exECS.world.World
 
-internal class EntityMapper(private var world: World, freshAddedEntitiesArray: IntIterableArray, freshRemovedEntitiesArray: IntArrayStackSet) {
+internal class EntityMapper(
+    private var world: World,
+    freshAddedEntitiesArray: IntIterableArray,
+    freshRemovedEntitiesArray: IntArrayStackSet,
+    initialCapacity: Int
+) {
 
     /** Current backing array size of component mappers
      * Stored here to calculate new size only once and only when entity with id that exceeds current size is added.*/
-    @JvmField internal var componentMappersSize: Int = 16
+    @JvmField internal var componentMappersSize: Int = initialCapacity
 
     /** Amount of IDs reserved for singletons.*/
     @JvmField internal val reservedForSingletons = ExEcs.singletonEntityIDsResolver.size

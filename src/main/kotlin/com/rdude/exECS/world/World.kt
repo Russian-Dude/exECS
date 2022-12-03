@@ -31,9 +31,12 @@ import com.rdude.exECS.utils.systemTypeId
 import kotlin.reflect.KClass
 
 /** Core element of the exECS. Stores and manages [Events][Event], [Entities][Entity], [Components][Component] and [Systems][System].*/
-class World {
+class World(worldInitializer: WorldInitializer = WorldInitializer()) {
 
-    @JvmField val configuration = WorldConfiguration(this)
+    constructor(worldInitializer: WorldInitializer.() -> Unit) : this(WorldInitializer().apply(worldInitializer))
+
+
+    @JvmField val configuration = WorldConfiguration(this, worldInitializer)
 
     @JvmField internal val subscriptionsManager: SubscriptionsManager
 
@@ -42,8 +45,8 @@ class World {
     init {
         val freshRemovedEntitiesArray = IntArrayStackSet()
         val freshAddedEntitiesArray = IntIterableArray()
-        subscriptionsManager = SubscriptionsManager(this, freshAddedEntitiesArray, freshRemovedEntitiesArray)
-        entityMapper = EntityMapper(this, freshAddedEntitiesArray, freshRemovedEntitiesArray)
+        subscriptionsManager = SubscriptionsManager(this, freshAddedEntitiesArray, freshRemovedEntitiesArray, worldInitializer.entityCapacity)
+        entityMapper = EntityMapper(this, freshAddedEntitiesArray, freshRemovedEntitiesArray, worldInitializer.entityCapacity)
     }
 
     @JvmField internal val systems = Array<System?>(ExEcs.systemTypeIDsResolver.size) { null }

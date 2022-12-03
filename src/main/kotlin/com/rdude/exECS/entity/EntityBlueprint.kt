@@ -2,9 +2,15 @@ package com.rdude.exECS.entity
 
 import com.rdude.exECS.pool.Poolable
 import com.rdude.exECS.pool.fromPool
+import com.rdude.exECS.component.Component
 import com.rdude.exECS.world.World
 
-
+/** Blueprints are used to create predefined [Components][Component] compositions with optional parent-child
+ * relations between [Entities][Entity].
+ *
+ * Entities then can be created from Blueprints using ``entity.``[createEntity][com.rdude.exECS.world.WorldAccessor.createEntity]``(blueprint)`` method.
+ *
+ * More info can be found on the [wiki](https://github.com/Russian-Dude/exECS/wiki/Entity#blueprints)*/
 class EntityBlueprint<T : EntityBlueprintConfiguration> @PublishedApi internal constructor(
     @JvmField
     @PublishedApi

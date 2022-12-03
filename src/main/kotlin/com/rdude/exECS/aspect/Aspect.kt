@@ -136,6 +136,11 @@ class Aspect(
 
     fun isEmpty() = allOf.isEmpty() && anyOf.isEmpty() && exclude.isEmpty()
 
+    /** @return all unique Component type ids from [allOf], [anyOf] and [exclude].*/
+    internal fun getComponentTypeIds(): Sequence<Int> =
+        (allOf.getSequenceOfAllComponentTypeIds() + anyOf.getSequenceOfAllComponentTypeIds() + exclude.getSequenceOfAllComponentTypeIds())
+            .distinct()
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Aspect) return false

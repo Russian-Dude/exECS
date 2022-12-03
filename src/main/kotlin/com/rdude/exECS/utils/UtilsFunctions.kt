@@ -51,6 +51,24 @@ internal inline fun LongArray.changeEach(apply: (Long) -> Long) {
     }
 }
 
+internal inline fun IntArray.swap(index1: Int, index2: Int) {
+    val tmp = this[index1]
+    this[index1] = this[index2]
+    this[index2] = tmp
+}
+
+internal inline fun LongArray.swap(index1: Int, index2: Int) {
+    val tmp = this[index1]
+    this[index1] = this[index2]
+    this[index2] = tmp
+}
+
+internal inline fun <T : Any?> Array<T>.swap(index1: Int, index2: Int) {
+    val tmp = this[index1]
+    this[index1] = this[index2]
+    this[index2] = tmp
+}
+
 /** For each loop without iterator instantiation.*/
 internal inline fun IntArray.fastForEach(action: (Int) -> Unit) {
     for (i in 0..size - 1) {

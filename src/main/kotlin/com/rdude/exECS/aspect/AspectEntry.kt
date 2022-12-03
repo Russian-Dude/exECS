@@ -3,6 +3,7 @@ package com.rdude.exECS.aspect
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentCondition
 import com.rdude.exECS.component.ImmutableComponent
+import com.rdude.exECS.utils.componentTypeId
 import kotlin.reflect.KClass
 
 /** Part of an [Aspect]. Represents the conditions that the [Component] can meet.*/
@@ -28,6 +29,16 @@ data class AspectEntry(
 
     /** True if this aspect entry does not describe any conditions.*/
     fun isEmpty(): Boolean = types.isEmpty() && conditions.isEmpty()
+
+    /** @return all unique Component type ids from [types] and [conditions].*/
+    internal fun getSequenceOfAllComponentTypeIds(): Sequence<Int> =
+        types.asSequence()
+            .map { it.componentTypeId }
+            .let { seq ->
+                seq + conditions.asSequence()
+                    .map { it.componentTypeId }
+            }
+            .distinct()
 
     override fun toString(): String {
         val simple = if (types.isEmpty()) null else "types=$types"
