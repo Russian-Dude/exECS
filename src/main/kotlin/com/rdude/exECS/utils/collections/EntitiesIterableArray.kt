@@ -5,15 +5,14 @@ import com.rdude.exECS.entity.EntityComparator
 import com.rdude.exECS.utils.swap
 import kotlin.math.max
 
-/** Stores Entities. Removing and sorting of Entities are lazy and performed while iterating with [forEach] if needed.
- * Sorting is optimized to perform better on already sorted or almost sorted elements.*/
-internal class EntitiesIteratingArray(
+/** Stores Entities. Removing and sorting of Entities are lazy and performed while iterating with [forEach] if needed.*/
+internal class EntitiesIterableArray(
     initialCapacity: Int,
     private val comparator: EntityComparator = EntityComparator.DO_NOT_COMPARE
 ) {
 
     private var backingArray = IntArray(16)
-    private val presence = UnsafeBitSet(initialCapacity)
+    @JvmField internal val presence = UnsafeBitSet(initialCapacity)
     private var size = 0
 
     private val ordered = comparator != EntityComparator.DO_NOT_COMPARE
@@ -21,17 +20,20 @@ internal class EntitiesIteratingArray(
 
     private var hasRemoveRequests = false
     private var removeRequestsAmount = 0
-    private val markedToRemove = UnsafeBitSet(initialCapacity)
+    @JvmField internal val markedToRemove = UnsafeBitSet(initialCapacity)
 
 
     fun add(entity: Entity) = add(entity.id)
 
     fun add(entityId: Int) {
-        if (markedToRemove[entityId]) {
-            markedToRemove.clear(entityId)
-            removeRequestsAmount--
-            hasRemoveRequests = removeRequestsAmount > 0
-            return
+        if (presence[entityId]) {
+            if (markedToRemove[entityId]) {
+                markedToRemove.clear(entityId)
+                removeRequestsAmount--
+                hasRemoveRequests = removeRequestsAmount > 0
+                return
+            }
+            else return
         }
         if (ordered) addOrdered(entityId)
         else addUnordered(entityId)
@@ -59,12 +61,19 @@ internal class EntitiesIteratingArray(
     fun requestRemove(entity: Entity) = requestRemove(entity.id)
 
     fun requestRemove(entityId: Int) {
+        if (!presence[entityId] || markedToRemove[entityId]) return
         hasRemoveRequests = true
         markedToRemove.set(entityId)
         removeRequestsAmount++
     }
 
-    fun changeOccurred() {
+    fun changeOccurred(entityId: Int) {
+        if (presence[entityId]) {
+            isSortRequired = true
+        }
+    }
+
+    fun forceChangeOccurred() {
         isSortRequired = true
     }
 
@@ -82,6 +91,7 @@ internal class EntitiesIteratingArray(
     fun isNotEmpty() = size > 0
 
     inline fun forEach(action: (entityId: Int) -> Unit) {
+        if (size == 0) return
         if (removeRequestsAmount == size) {
             clear()
             return
@@ -241,7 +251,6 @@ internal class EntitiesIteratingArray(
     }
 
     private fun quickSort(startIndex: Int, endIndex: Int) {
-
         val length = endIndex - startIndex
 
         if (length <= SELECTION_SORT_MAX) {
@@ -548,6 +557,130 @@ internal class EntitiesIteratingArray(
             backingArray.swap(index4, index5)
         }
 
+        val entity1 = backingArray[index1]
+        val entity3 = backingArray[index3]
+        val entity5 = backingArray[index5]
+
+        if (comparator.compare(entity1, entity5) == 0) {
+            return median5CaseOfAAA(index1, index2, index3, index4, index5)
+        }
+        else if (comparator.compare(entity1, entity3) == 0) {
+            return median5CaseOfAAB(index1 + 1, index1, index3, index4, index5)
+        }
+        else if (comparator.compare(entity3, entity5) == 0) {
+            return median5CaseOfABB(index1 + 1, index1, index2, index3, index5)
+        }
+
+        return index3
+    }
+
+    private fun median5CaseOfAAA(
+        index1: Int,
+        index2: Int,
+        index3: Int,
+        index4: Int,
+        index5: Int
+    ) : Int {
+        val value = backingArray[index3]
+        for (currentIndex in index1 + 1 until index5) {
+
+            val currentEntity = backingArray[currentIndex]
+            val currentToValue = comparator.compare(currentEntity, value)
+
+            if (currentToValue == 0) continue
+
+            if (currentToValue > 0) {
+                backingArray.swap(currentIndex, index5)
+                return median5CaseOfAAB(currentIndex + 1, index1, index3, index4, index5)
+            }
+            else {
+                backingArray.swap(currentIndex, index1)
+                return median5CaseOfABB(currentIndex + 1, index1, index2, index3, index5)
+            }
+        }
+        return index3
+    }
+
+    private fun median5CaseOfAAB(
+        startIterationFrom: Int,
+        index1: Int,
+        index3: Int,
+        index4: Int,
+        index5: Int
+    ): Int {
+        val value = backingArray[index3]
+        if (comparator.compare(value, backingArray[index4]) != 0) {
+            return index4
+        }
+        val maxEntity = backingArray[index5]
+        var foundSameMax: Boolean = comparator.compare(backingArray[index5 - 1], maxEntity) == 0
+        for (currentIndex in startIterationFrom until index5) {
+
+            val currentEntity = backingArray[currentIndex]
+            val currentToValue = comparator.compare(currentEntity, value)
+
+            if (currentToValue == 0) continue
+
+            if (currentToValue > 0) {
+                val currentToMax = comparator.compare(currentEntity, maxEntity)
+                if (currentToMax > 0) {
+                    backingArray.swap(index3, index5)
+                    backingArray.swap(currentIndex, index5)
+                    return index3
+                }
+                else if (currentToMax < 0) {
+                    backingArray.swap(currentIndex, index3)
+                    return index3
+                }
+                else if (!foundSameMax) {
+                    backingArray.swap(currentIndex, index5 - 1)
+                    foundSameMax = true
+                }
+            }
+            else {
+                backingArray.swap(currentIndex, index1)
+                return index3
+            }
+        }
+        return if (foundSameMax) index5 else index3
+    }
+
+    private fun median5CaseOfABB(
+        startIterationFrom: Int,
+        index1: Int,
+        index2: Int,
+        index3: Int,
+        index5: Int,
+    ): Int {
+        val value = backingArray[index3]
+        if (comparator.compare(value, backingArray[index2]) != 0) {
+            return index2
+        }
+        val minEntity = backingArray[index1]
+        for (currentIndex in startIterationFrom until index5) {
+
+            val currentEntity = backingArray[currentIndex]
+            val currentToValue = comparator.compare(currentEntity, value)
+
+            if (currentToValue == 0) continue
+
+            if (currentToValue > 0) {
+                backingArray.swap(currentIndex, index5)
+                return index3
+            }
+            else {
+                val currentToMin = comparator.compare(currentEntity, minEntity)
+                if (currentToMin < 0) {
+                    backingArray.swap(index3, index1)
+                    backingArray.swap(currentIndex, index1)
+                    return index3
+                }
+                else if (currentToMin > 0) {
+                    backingArray.swap(currentIndex, index3)
+                    return index3
+                }
+            }
+        }
         return index3
     }
 
