@@ -16,7 +16,6 @@ object ActingEvent : InternalEvent() {
      * case, priority from the [ExEcsGlobalConfiguration.WorldDefaultConfiguration.actingEventPriority] will be used.*/
     override fun defaultPriority(): EventPriority = ExEcsGlobalConfiguration.worldDefaultConfiguration.actingEventPriority
 
-    // hardcoded for performance
-    override fun getEventTypeId(): Int = 0
+    override fun getEventTypeId(): Int = EventTypeIDsResolver.ACTING_EVENT_ID
 
 }

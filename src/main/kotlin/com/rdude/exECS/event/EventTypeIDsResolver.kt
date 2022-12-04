@@ -33,15 +33,30 @@ internal class EventTypeIDsResolver {
     // hardcoded ids for internal events
     // return amount of internal event types
     private fun resolveInternalEventsIds(classToIdMap: MutableMap<KClass<out Event>, Int>): Int {
-        // 3 not component related: acting, entityAdded, entityRemoved
-        classToIdMap[ActingEvent::class] = 0
-        classToIdMap[EntityAddedEvent::class] = 1
-        classToIdMap[EntityRemovedEvent::class] = 2
+        // not component related:
+        classToIdMap[ActingEvent::class] = ACTING_EVENT_ID
+        classToIdMap[EntityAddedEvent::class] = ENTITY_ADDED_ID
+        classToIdMap[EntityRemovedEvent::class] = ENTITY_REMOVED_ID
+        classToIdMap[ChildEntityAddedEvent::class] = CHILD_ENTITY_ADDED_ID
+        classToIdMap[ChildEntityRemovedEvent::class] = CHILD_ENTITY_REMOVED_ID
 
         // component related events ids: notComponentRelatedAmount + (offset * componentsAmount) + componentId
         // currently there are 3 component related events: added (offset = 0), removed(offset = 1) and changed(offset = 2)
-        val componentRelatedEventsIdsAmount = ExEcs.componentTypeIDsResolver.size * 3
-        return 3 + componentRelatedEventsIdsAmount
+        val componentRelatedEventsIdsAmount = ExEcs.componentTypeIDsResolver.size * INTERNAL_COMPONENT_RELATED_EVENTS_AMOUNT
+        return INTERNAL_NON_COMPONENT_RELATED_EVENTS_AMOUNT + componentRelatedEventsIdsAmount
+    }
+
+    companion object {
+        const val INTERNAL_NON_COMPONENT_RELATED_EVENTS_AMOUNT = 5
+        const val INTERNAL_COMPONENT_RELATED_EVENTS_AMOUNT = 3
+        const val ACTING_EVENT_ID = 0
+        const val ENTITY_ADDED_ID = 1
+        const val ENTITY_REMOVED_ID = 2
+        const val CHILD_ENTITY_ADDED_ID = 3
+        const val CHILD_ENTITY_REMOVED_ID = 4
+        const val COMPONENT_ADDED_ID_SHIFT = 0
+        const val COMPONENT_REMOVED_ID_SHIFT = 1
+        const val COMPONENT_CHANGED_ID_SHIFT = 2
     }
 
 }

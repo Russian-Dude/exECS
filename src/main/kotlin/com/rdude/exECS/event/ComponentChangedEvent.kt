@@ -20,8 +20,10 @@ class ComponentChangedEvent<T : ObservableComponent<*>> : InternalPoolableEvent(
     @JvmField
     internal var _change: ComponentChange = NO_CHANGE
 
-    // notComponentRelatedInternalEventsAmount + (eventId * componentsAmount) + componentId
-    override fun getEventTypeId(): Int = 3 + (2 * ExEcs.componentTypeIDsResolver.size) + component.getComponentTypeId()
+    override fun getEventTypeId(): Int =
+        EventTypeIDsResolver.INTERNAL_NON_COMPONENT_RELATED_EVENTS_AMOUNT +
+                EventTypeIDsResolver.COMPONENT_CHANGED_ID_SHIFT * ExEcs.componentTypeIDsResolver.size +
+                component.getComponentTypeId()
 
 
     internal companion object {
@@ -39,5 +41,6 @@ class ComponentChangedEvent<T : ObservableComponent<*>> : InternalPoolableEvent(
 // looks nicer than
 // class MySystem : SimpleEventSystem<ComponentChangedEvent<ScoreComponent>, ScoreChangedEvent>>
 /** The change that happened to the component.*/
+@Suppress("UNCHECKED_CAST")
 val <CH : ComponentChange, CO : ObservableComponent<CH>, E : ComponentChangedEvent<CO>> E.change: CH get() = _change as CH
 

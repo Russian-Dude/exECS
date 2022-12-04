@@ -18,8 +18,10 @@ class ComponentRemovedEvent<T : Component> internal constructor() : InternalPool
     override lateinit var component: T
         internal set
 
-    // notComponentRelatedInternalEventsAmount + (eventId * componentsAmount) + componentId
-    override fun getEventTypeId(): Int = 3 + ExEcs.componentTypeIDsResolver.size + component.getComponentTypeId()
+    override fun getEventTypeId(): Int =
+        EventTypeIDsResolver.INTERNAL_NON_COMPONENT_RELATED_EVENTS_AMOUNT +
+                ExEcs.componentTypeIDsResolver.size +
+                component.getComponentTypeId()
 
 
     internal companion object {

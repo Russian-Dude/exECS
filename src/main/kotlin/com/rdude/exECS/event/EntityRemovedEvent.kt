@@ -12,8 +12,7 @@ class EntityRemovedEvent internal constructor() : InternalPoolableEvent() {
     var entity: Entity = Entity.NO_ENTITY
         internal set
 
-    // hardcoded for performance
-    override fun getEventTypeId(): Int = 2
+    override fun getEventTypeId(): Int = EventTypeIDsResolver.ENTITY_REMOVED_ID
 
 
     internal companion object {

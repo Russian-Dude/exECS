@@ -24,7 +24,9 @@ import com.rdude.exECS.world.World
  * @see ComponentRemovedEvent
  * @see ComponentChangedEvent
  * @see EntityAddedEvent
- * @see EntityRemovedEvent*/
+ * @see EntityRemovedEvent
+ * @see ChildEntityAddedEvent
+ * @see ChildEntityRemovedEvent*/
 interface Event {
 
 

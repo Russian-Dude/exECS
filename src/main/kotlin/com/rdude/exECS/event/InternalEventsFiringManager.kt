@@ -22,6 +22,8 @@ internal class InternalEventsFiringManager(val world: World) {
     val componentChangedSubscribersAmount = IntArray(ExEcs.componentTypeIDsResolver.size)
     var entityAddedSubscribersAmount = 0
     var entityRemovedSubscribersAmount = 0
+    var childEntityAddedSubscribersAmount = 0
+    var childEntityRemovedSubscribersAmount = 0
 
 
     internal fun registerSystem(system: EventSystem<*>) = update(system, added = true)
@@ -37,6 +39,7 @@ internal class InternalEventsFiringManager(val world: World) {
         if (!eventType.isSubclassOf(InternalEvent::class) || eventType == ActingEvent::class) return
 
         when(eventType) {
+
             ComponentAddedEvent::class -> {
                 for (componentId in componentIds) {
                     val oldValue = componentAddedSubscribersAmount[componentId]
@@ -45,6 +48,7 @@ internal class InternalEventsFiringManager(val world: World) {
                     world.entityMapper.componentMappers[componentId].sendComponentAddedEvents = newValue > 0
                 }
             }
+
             ComponentRemovedEvent::class -> {
                 for (componentId in componentIds) {
                     val oldValue = componentRemovedSubscribersAmount[componentId]
@@ -53,6 +57,7 @@ internal class InternalEventsFiringManager(val world: World) {
                     world.entityMapper.componentMappers[componentId].sendComponentRemovedEvents = newValue > 0
                 }
             }
+
             ComponentChangedEvent::class -> {
                 for (componentId in componentIds) {
                     val oldValue = componentChangedSubscribersAmount[componentId]
@@ -61,13 +66,25 @@ internal class InternalEventsFiringManager(val world: World) {
                     world.observableComponentChangeManager.sendComponentChangedEvents[componentId] = newValue > 0
                 }
             }
+
             EntityAddedEvent::class -> {
                 entityAddedSubscribersAmount += if (added) 1 else -1
                 world.entityMapper.sendEntityAddedEvents = entityAddedSubscribersAmount > 0
             }
+
             EntityRemovedEvent::class -> {
                 entityRemovedSubscribersAmount += if (added) 1 else -1
                 world.entityMapper.sendEntityRemovedEvents = entityRemovedSubscribersAmount > 0
+            }
+
+            ChildEntityAddedEvent::class -> {
+                childEntityAddedSubscribersAmount += if (added) 1 else -1
+                world.entityMapper.sendChildEntityAddedEvents = childEntityAddedSubscribersAmount > 0
+            }
+
+            ChildEntityRemovedEvent::class -> {
+                childEntityRemovedSubscribersAmount += if (added) 1 else -1
+                world.entityMapper.sendChildEntityRemovedEvents = childEntityRemovedSubscribersAmount > 0
             }
         }
     }

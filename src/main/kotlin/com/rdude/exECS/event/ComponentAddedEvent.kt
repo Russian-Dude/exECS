@@ -26,7 +26,8 @@ class ComponentAddedEvent<T : Component> internal constructor() : InternalPoolab
     val replaced get() = replacedComponent != null
 
     // notComponentRelatedInternalEventsAmount + (eventId * componentsAmount) + componentId
-    override fun getEventTypeId(): Int = 3 + component.getComponentTypeId()
+    override fun getEventTypeId(): Int =
+        EventTypeIDsResolver.INTERNAL_NON_COMPONENT_RELATED_EVENTS_AMOUNT + component.getComponentTypeId()
 
     internal companion object {
         val pool = Pool { ComponentAddedEvent<Component>() }

@@ -5,6 +5,8 @@ import com.rdude.exECS.component.ChildEntityComponent
 import com.rdude.exECS.component.Component
 import com.rdude.exECS.component.ComponentMapper
 import com.rdude.exECS.component.ParentEntityComponent
+import com.rdude.exECS.event.ChildEntityAddedEvent
+import com.rdude.exECS.event.ChildEntityRemovedEvent
 import com.rdude.exECS.event.EntityAddedEvent
 import com.rdude.exECS.event.EntityRemovedEvent
 import com.rdude.exECS.exception.NoEntityException
@@ -81,6 +83,10 @@ internal class EntityMapper(
 
     @JvmField internal var sendEntityRemovedEvents = false
 
+    @JvmField internal var sendChildEntityAddedEvents = false
+
+    @JvmField internal var sendChildEntityRemovedEvents = false
+
 
 
     internal fun linkEntityBitSet(bitSet: UnsafeBitSet) = linkedBitSets.add(bitSet)
@@ -145,7 +151,6 @@ internal class EntityMapper(
         if (sendEntityAddedEvents) {
             val event = EntityAddedEvent.pool.obtain()
             event.entity = Entity(id)
-            event.entityAsSingleton = null
             world.queueEvent(event)
         }
         world.internalChangeOccurred = true
@@ -171,7 +176,6 @@ internal class EntityMapper(
         if (sendEntityAddedEvents) {
             val event = EntityAddedEvent.pool.obtain()
             event.entity = Entity(entityID)
-            event.entityAsSingleton = singletonEntity
             world.queueEvent(event)
         }
         // update generated fields based on the current world
@@ -192,11 +196,17 @@ internal class EntityMapper(
         if (sendEntityRemovedEvents) {
             val event = EntityRemovedEvent.pool.obtain()
             event.entity = Entity(id)
-            event.entityAsSingleton = if (id >= reservedForSingletons) null else singletons[id]
             world.queueEvent(event)
         }
-        // parents
+
+        // remove from parent
+        val childComponent = childEntityComponents[id]
+        if (childComponent != null) {
+            removeChildEntity(childComponent.parentEntityId, id)
+        }
+        // request remove children
         parentEntityComponents[id]?.children?.forEach { requestRemove(it.id) }
+
         world.internalChangeOccurred = true
     }
 
@@ -209,16 +219,12 @@ internal class EntityMapper(
 
     private fun remove(id: Int) {
         size--
-        parentEntityComponents[id]?.children?.forEach { child ->
-            childEntityComponents.removeComponent(child.id, false)
-        }
-        val childComponent = childEntityComponents[id]
-        if (childComponent != null) {
-            val parent = parentEntityComponents[childComponent.parentEntityId]
-            if (parent != null) {
-                parent.children.remove(id)
-                if (parent.children.isEmpty()) parentEntityComponents.removeComponent(childComponent.parentEntityId, false)
+        val parentEntityComponent = parentEntityComponents[id]
+        if (parentEntityComponent != null) {
+            parentEntityComponent.children.forEach { child ->
+                childEntityComponents.removeComponent(child.id, false)
             }
+            parentEntityComponents.removeComponent(id, false)
         }
         val isNotSingleton = id >= reservedForSingletons
         if (isNotSingleton) {
@@ -255,6 +261,13 @@ internal class EntityMapper(
             parentEntityComponents[childComponent.parentEntityId]!!.children.remove(child)
         }
         childComponent.parentEntityId = parent
+
+        if (sendChildEntityAddedEvents) {
+            val event = ChildEntityAddedEvent.pool.obtain()
+            event.childEntity = Entity(child)
+            event.parentEntity = Entity(parent)
+            world.queueEvent(event)
+        }
     }
 
     fun removeChildEntity(parent: Int, child: Int) {
@@ -265,6 +278,13 @@ internal class EntityMapper(
         val children = parentComponent.children
         children.remove(child)
         if (children.size == 0) parentEntityComponents.removeComponent(parent, false)
+
+        if (sendChildEntityRemovedEvents) {
+            val event = ChildEntityRemovedEvent.pool.obtain()
+            event.childEntity = Entity(child)
+            event.parentEntity = Entity(parent)
+            world.queueEvent(event)
+        }
     }
 
     fun growSizeTo(newSize: Int) {
