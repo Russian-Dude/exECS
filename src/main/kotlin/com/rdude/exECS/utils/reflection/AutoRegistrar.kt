@@ -2,34 +2,36 @@ package com.rdude.exECS.utils.reflection
 
 import com.rdude.exECS.utils.ExEcs
 import kotlin.reflect.KClass
-import kotlin.reflect.full.valueParameters
 
+/** Finds, filters, orders, instantiates and registers elements in the provided registry.
+ * @param E elements to be registered
+ * @param R registry in which [E] elements will be registered*/
 class AutoRegistrar<E : Any, R : Any> private constructor(
     private val elementCl: KClass<E>,
     private val registrationFun: (E, R) -> Unit
 ) : AutoRegistrarProperties<E, R> {
 
-    /** Function that transforms a list of founded classes.
-     * New instances will be created and registered in the order of their classes in this list.*/
-    override var classesFilter: (List<KClass<out E>>) -> List<KClass<out E>> = { it }
 
-    /** Function that produces new instance by given KClass.*/
-    override var instanceProducer: (KClass<out E>) -> E = {
-        it.objectInstance
-            ?: it.constructors
-                .find { c -> c.valueParameters.isEmpty() || c.valueParameters.all { p -> p.isOptional } }
-                ?.call()
-            ?: throw IllegalStateException(
-                "AutoRegistrar is unable not create instance of the $it using default instanceProducer function." +
-                        " At least one constructor with all optional arguments is required."
-            )
+    override var find: () -> List<KClass<out E>> = {
+        ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(elementCl)
+    }
+
+    override var filter: (KClass<out E>) -> Boolean = { true }
+
+    override var order: (List<KClass<out E>>) -> List<KClass<out E>> = {
+        AutoRegisterOrders.byAnnotations(it)
+    }
+
+    override var instantiate: (List<KClass<out E>>) -> List<E> = {
+        InstancesInstantiator.instantiateAll(elementCl, it)
     }
 
 
     fun register(registry: R) =
-        ExEcs.reflectionUtils.getNotAbstractSubClassesFromAllPackages(elementCl)
-            .let { classesFilter.invoke(it) }
-            .map { instanceProducer.invoke(it) }
+        find.invoke()
+            .filter(filter)
+            .let(order)
+            .let(instantiate)
             .forEach { registrationFun.invoke(it, registry) }
 
 
