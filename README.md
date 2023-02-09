@@ -60,7 +60,7 @@ buildscript {
 }
 
 dependencies {
-    implementation("com.github.Russian-Dude:exECS:1.5.1")
+    implementation("com.github.Russian-Dude:exECS:1.5.2")
 }
 
 apply(plugin = "execs-plugin")
