@@ -33,6 +33,142 @@ The [simple example](https://github.com/Russian-Dude/exECS/wiki/Simple-example) 
 
 * **Easy to serialize**
 
+# Code examples
+
+<details> 
+  <summary>Starting ExECS</summary>
+  
+   ```kotlin
+   fun main() {
+
+        // Worlds are main entries
+        val world = World()
+
+        // Register all Systems available in the classpath (can be done manually)
+        // Auto-registration can be customized
+        world.autoRegisterSystems()
+        
+        // Create Entity. Can be done inside Systems
+        world.createEntity(
+            NameComponent("Julia"),
+            GenderComponent.FEMALE,
+            fromPool<AgeComponent> { value = 26 }
+        )
+
+        // Process the World by calling the `act` method whenever needed
+        while (true) {
+            world.act()
+        }
+    }
+   ```
+   
+</details>
+
+<details> 
+  <summary>Components</summary>
+  
+   ```kotlin
+// Use simple Components
+class NameComponent(val name: String) : Component
+
+// Or combine different interfaces to make advanced Components
+class AgeComponent : ObservableIntComponent(), RichComponent, Poolable
+
+enum class GenderComponent : ImmutableComponent {
+        MALE, FEMALE
+}
+   ```
+   
+</details>
+
+<details> 
+  <summary>Events</summary>
+  
+   ```kotlin
+// Subscriptions to Events are polymorphic
+
+interface HolidayEvent : Event
+
+class WomenDayEvent : HolidayEvent, Poolable
+   ```
+   
+</details>
+
+<details> 
+  <summary>Systems</summary>
+  
+   ```kotlin
+    // This System acts every tick
+    class PrintTickSystem : ActingSystem() {
+
+        override fun act() {
+            println("Tick!")
+        }
+    }
+
+    // This System acts every time HolidayEvent or its ancestor is fired
+    class PrintItsHolidaySystem : EventSystem<HolidayEvent>() {
+
+        override fun eventFired(event: HolidayEvent) {
+            println("Wow, such a good day to be a holiday!")
+        }
+    }
+
+    // This System acts every tick and iterates through the Entities with NameComponent
+    class PrintHelloSystem : IterableActingSystem(only = NameComponent::class) {
+
+        override fun act(entity: Entity) {
+            val name = entity<NameComponent>()!!.name
+            println("Hello, $name!")
+        }
+    }
+
+    // This System acts every time WomenDayEvent is fired and iterates through the Entities
+    // that are females, with age over or equals 18, and have a name
+    class CongratsAdultWomenSystem : IterableEventSystem<WomenDayEvent>(
+        allOf = NameComponent::class and GenderComponent.FEMALE and AgeComponent::class { value >= 18 }
+    ) {
+
+        override fun eventFired(entity: Entity, event: WomenDayEvent) {
+            println("Happy International Women's Day, ${entity<NameComponent>()!!.name}!")
+        }
+    }
+   ```
+   
+</details>
+
+<details> 
+  <summary>Entity Blueprints</summary>
+  
+   ```kotlin
+    // Simple blueprint
+    val justManBP = EntityBlueprint {
+        withComponent(GenderComponent.MALE)
+    }
+
+    // Blueprint that allows to customize an Entity on creation
+    class PersonBPConfig(var name: String, var age: Int, var gender: GenderComponent) : EntityBlueprintConfiguration(), Poolable
+
+    val personBP = EntityBlueprint<PersonBPConfig> { config ->
+        withComponent(NameComponent(config.name))
+        withComponent(config.gender)
+        withComponent<AgeComponent> { value = config.age }
+    }
+
+
+    // Creating Entities somewhere inside System:
+
+    createEntity(justManBP)
+
+    createEntity(personBP) {
+        name = "Winston"
+        gender = GenderComponent.MALE
+        age = 39
+    }
+   ```
+   
+</details>
+
 # Requirements
 To use ExECS with the compiler plugin, Kotlin version 1.7.21 is required.
 
