@@ -124,9 +124,10 @@ class WomenDayEvent : HolidayEvent, Poolable
     }
 
     // This System acts every time WomenDayEvent is fired and iterates through the Entities
-    // that are females, with age over or equals 18, and have a name
+    // that are females, with an age over or equal 18, and have a name. Ordered by their age
     class CongratsAdultWomenSystem : IterableEventSystem<WomenDayEvent>(
-        allOf = NameComponent::class and GenderComponent.FEMALE and AgeComponent::class { value >= 18 }
+        allOf = NameComponent::class and GenderComponent.FEMALE and AgeComponent::class { value >= 18 },
+        orderBy = AgeComponent::class.ascending()
     ) {
 
         override fun eventFired(entity: Entity, event: WomenDayEvent) {
